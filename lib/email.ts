@@ -57,7 +57,13 @@ export async function sendMemberInviteEmail({
   role: "MANAGER" | "MEMBER";
 }) {
   const roleLabel = role === "MANAGER" ? "مدير مشروع" : "عضو فريق";
-  const appUrl   = process.env.NEXTAUTH_URL ?? process.env.APP_URL ?? "http://localhost:3000";
+  // AUTH_URL is the canonical public origin (Auth.js reads it too), so one
+  // variable drives both the session callbacks and the links we email out.
+  const appUrl =
+    process.env.AUTH_URL ??
+    process.env.NEXTAUTH_URL ??
+    process.env.APP_URL ??
+    "http://localhost:3000";
   const link     = `${appUrl}/projects/${projectId}`;
 
   const subject = `تمت إضافتك إلى مشروع "${projectName}"`;

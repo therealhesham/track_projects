@@ -38,6 +38,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# متغيرات لازمة وقت التشغيل (تتحط من منصة النشر، مش في الصورة):
+#   DATABASE_URL  — اتصال قاعدة البيانات
+#   AUTH_SECRET   — مفتاح توقيع الكوكي
+#   AUTH_URL      — العنوان العام الكامل، مثال: https://projects.rawaes.com
+#
+# AUTH_URL مش اختياري هنا: Auth.js بيثق في الـ Host تلقائيًا على Vercel بس،
+# وبدونه بيرمي UntrustedHost وبيبني روابط الرجوع من 0.0.0.0:3000.
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
