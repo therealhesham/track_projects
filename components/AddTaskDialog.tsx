@@ -4,7 +4,6 @@ import { useRef, useEffect, useState, useTransition } from "react";
 import { Plus, X, AlertCircle } from "lucide-react";
 import type { ProjectView } from "@/lib/view";
 import { addTask } from "@/app/actions";
-import { useRole } from "./RoleContext";
 
 export default function AddTaskDialog({
   project,
@@ -13,7 +12,6 @@ export default function AddTaskDialog({
   project: ProjectView;
   onClose: () => void;
 }) {
-  const { currentUser } = useRole();
   const [title, setTitle] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +38,6 @@ export default function AddTaskDialog({
         projectId: project.id,
         title,
         assigneeId: assigneeId || undefined,
-        addedById: currentUser.id,
       });
       if (!result.ok) {
         setError(result.error);

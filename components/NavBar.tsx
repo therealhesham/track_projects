@@ -82,7 +82,6 @@ export default function NavBar({
 
       {createUserOpen && (
         <CreateUserModal
-          addedByName={viewer.name}
           onClose={() => setCreateUserOpen(false)}
         />
       )}

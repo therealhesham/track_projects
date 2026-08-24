@@ -117,7 +117,6 @@ export default function CreateProjectForm({
         tasks: tasks
           .filter((t) => t.title.trim().length > 0)
           .map((t) => ({ title: t.title, assigneeId: t.assigneeId || undefined })),
-        creatorId,
       });
 
       if (!res.ok) {

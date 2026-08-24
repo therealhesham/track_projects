@@ -74,7 +74,6 @@ export default function TeamPanel({
         projectId: project.id,
         userId: selectedUserId,
         role: memberRole,
-        addedByName: currentUser.name,
       });
 
       if (!res.ok) {
@@ -99,7 +98,6 @@ export default function TeamPanel({
         department: newUserDept || undefined,
         password: newUserPass || undefined,
         projectId: project.id,
-        addedByName: currentUser.name,
       });
 
       if (!res.ok) {

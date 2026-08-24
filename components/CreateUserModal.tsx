@@ -6,10 +6,8 @@ import { UserPlus, X, Sparkles, Shield, Mail, User, Building2, Lock } from "luci
 
 export default function CreateUserModal({
   onClose,
-  addedByName,
 }: {
   onClose: () => void;
-  addedByName: string;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,7 +31,6 @@ export default function CreateUserModal({
         role,
         department: department || undefined,
         password: password || undefined,
-        addedByName,
       });
 
       if (!res.ok) {

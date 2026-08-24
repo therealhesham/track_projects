@@ -63,6 +63,49 @@ export function canManageMembers(
 }
 
 /**
+ * Proposing a task. Any member of the project may add one; it lands in
+ * PENDING_APPROVAL, so the gate that matters is the approval below.
+ */
+export function canAddTask(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || membership !== null;
+}
+
+/**
+ * Letting a proposed task into the board, or turning it away. Account-wide
+ * oversight, so a super admin and nobody else.
+ */
+export function canApproveTask(viewer: Viewer): boolean {
+  return viewer.role === "SUPER_ADMIN";
+}
+
+/**
+ * Asking for a task to be marked done. Only the person carrying it — the
+ * request is a claim about their own work.
+ */
+export function canRequestCompletion(
+  viewer: Viewer,
+  assigneeId: string | null,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || viewer.id === assigneeId;
+}
+
+/** Signing off on a completion request, or sending it back. */
+export function canReviewCompletion(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || membership === "MANAGER";
+}
+
+/** Removing a task outright, history and all. */
+export function canDeleteTask(viewer: Viewer): boolean {
+  return viewer.role === "SUPER_ADMIN";
+}
+
+/**
  * Creating a project. MEMBER cannot — otherwise the board fills with work
  * nobody is accountable for.
  */

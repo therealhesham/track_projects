@@ -7,11 +7,72 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { nextStage } from "@/lib/labels";
 import { sendMemberInviteEmail } from "@/lib/email";
+import {
+  canAddTask,
+  canApproveTask,
+  canCreateProject,
+  canDeleteTask,
+  canEditProject,
+  canManageMembers,
+  canManageUsers,
+  canMoveTask,
+  canRequestCompletion,
+  canReviewCompletion,
+} from "@/lib/permissions";
+import { requireViewer } from "@/lib/session";
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 export async function signOutAction() {
   await signOut({ redirectTo: "/login" });
+}
+
+// ── Authorisation ────────────────────────────────────────────────────────────
+
+/**
+ * Every action below runs on a request the browser could have forged by hand —
+ * hiding a button in the UI grants nothing. So each one starts here: who is
+ * calling, and what is their standing on *this* project.
+ *
+ * The two axes are the ones in lib/permissions: the account-wide role from the
+ * session, and the per-project role from the membership row. Both are read from
+ * the server; nothing the caller sends is trusted for identity.
+ */
+const DENIED = "لا تملك صلاحية للقيام بهذا الإجراء" as const;
+
+/** The signed-in user plus their ProjectRole on `projectId`, or null if none. */
+async function viewerOn(projectId: string) {
+  const viewer = await requireViewer();
+  const membership = await prisma.projectMember.findUnique({
+    where: { userId_projectId: { userId: viewer.id, projectId } },
+    select: { role: true },
+  });
+  return { viewer, membership: membership?.role ?? null };
+}
+
+/** Same, resolved from a task rather than a project. */
+async function viewerOnTask(taskId: string) {
+  const viewer = await requireViewer();
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true,
+      projectId: true,
+      title: true,
+      approvalStatus: true,
+      assigneeId: true,
+      stage: true,
+      startedAt: true,
+      completedAt: true,
+    },
+  });
+  if (!task) return { viewer, task: null, membership: null };
+
+  const membership = await prisma.projectMember.findUnique({
+    where: { userId_projectId: { userId: viewer.id, projectId: task.projectId } },
+    select: { role: true },
+  });
+  return { viewer, task, membership: membership?.role ?? null };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -50,21 +111,17 @@ async function moveTask(taskId: string, stage: TaskStage) {
 
 /** Checkbox toggle in the detail panel: done ↔ in-progress (legacy). */
 export async function toggleTask(taskId: string) {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { stage: true },
-  });
+  const { viewer, task, membership } = await viewerOnTask(taskId);
   if (!task) return;
+  if (!canMoveTask(viewer, membership)) return;
   await moveTask(taskId, task.stage === "DONE" ? "IN_PROGRESS" : "DONE");
 }
 
 /** Board card click: advance one column, wrapping past the last back to NEW. */
 export async function advanceTask(taskId: string) {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { stage: true },
-  });
+  const { viewer, task, membership } = await viewerOnTask(taskId);
   if (!task) return;
+  if (!canMoveTask(viewer, membership)) return;
   await moveTask(taskId, nextStage(task.stage));
 }
 
@@ -84,12 +141,14 @@ export type CreateProjectInput = {
   githubUrl?: string;
   members?: { userId: string; role: "MANAGER" | "MEMBER" }[];
   tasks?: { title: string; assigneeId?: string }[];
-  creatorId?: string;
 };
 
 export async function createProject(
   input: CreateProjectInput,
 ): Promise<CreateProjectResult> {
+  const viewer = await requireViewer();
+  if (!canCreateProject(viewer)) return { ok: false, error: DENIED };
+
   const name = input.name.trim();
   if (!name) return { ok: false, error: "اسم المشروع مطلوب" };
 
@@ -108,6 +167,11 @@ export async function createProject(
   if (input.ownerId) {
     memberMap.set(input.ownerId, "MANAGER");
   }
+  // A non-super-admin creator who left themselves off the list would lose the
+  // project the moment it exists — projectScope only reaches what you joined.
+  if (viewer.role !== "SUPER_ADMIN" && !memberMap.has(viewer.id)) {
+    memberMap.set(viewer.id, "MANAGER");
+  }
 
   const membersCreate = Array.from(memberMap.entries()).map(([userId, role]) => ({
     userId,
@@ -125,7 +189,7 @@ export async function createProject(
     position,
     approvalStatus: "ACTIVE" as TaskApprovalStatus,
     assigneeId: t.assigneeId,
-    addedById: input.creatorId || input.ownerId || null,
+    addedById: viewer.id,
   }));
 
   const project = await prisma.project.create({
@@ -147,7 +211,7 @@ export async function createProject(
               tasksCreate.length > 0
                 ? `تم إنشاء المشروع وإضافة ${tasksCreate.length} مهام أولية`
                 : "تم إنشاء المشروع",
-            userId: input.creatorId || input.ownerId || null,
+            userId: viewer.id,
           },
         ],
       },
@@ -174,8 +238,10 @@ export async function addTask(input: {
   projectId: string;
   title: string;
   assigneeId?: string;
-  addedById: string;
 }): Promise<TaskActionResult> {
+  const { viewer, membership } = await viewerOn(input.projectId);
+  if (!canAddTask(viewer, membership)) return { ok: false, error: DENIED };
+
   const title = input.title.trim();
   if (!title) return { ok: false, error: "عنوان المهمة مطلوب" };
 
@@ -191,7 +257,7 @@ export async function addTask(input: {
       stage: "NEW",
       position: (maxPos._max.position ?? -1) + 1,
       assigneeId: input.assigneeId || null,
-      addedById: input.addedById,
+      addedById: viewer.id,
       approvalStatus: "PENDING_APPROVAL",
     },
   });
@@ -199,7 +265,7 @@ export async function addTask(input: {
   await prisma.activityLog.create({
     data: {
       projectId: input.projectId,
-      userId: input.addedById,
+      userId: viewer.id,
       message: `تمت إضافة مهمة جديدة: "${title}" — في انتظار الاعتماد`,
     },
   });
@@ -213,10 +279,8 @@ export async function addTask(input: {
  * Super-admin approves a pending task → ACTIVE.
  */
 export async function approveTask(taskId: string): Promise<TaskActionResult> {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { id: true, projectId: true, title: true, approvalStatus: true },
-  });
+  const { viewer, task } = await viewerOnTask(taskId);
+  if (!canApproveTask(viewer)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
   if (task.approvalStatus !== "PENDING_APPROVAL")
     return { ok: false, error: "المهمة ليست في انتظار الاعتماد" };
@@ -242,10 +306,8 @@ export async function approveTask(taskId: string): Promise<TaskActionResult> {
  * Super-admin rejects a pending task → REJECTED.
  */
 export async function rejectTask(taskId: string): Promise<TaskActionResult> {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { id: true, projectId: true, title: true, approvalStatus: true },
-  });
+  const { viewer, task } = await viewerOnTask(taskId);
+  if (!canApproveTask(viewer)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
   if (task.approvalStatus !== "PENDING_APPROVAL")
     return { ok: false, error: "المهمة ليست في انتظار الاعتماد" };
@@ -274,11 +336,10 @@ export async function requestCompletion(
   taskId: string,
   note?: string,
 ): Promise<TaskActionResult> {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { id: true, projectId: true, title: true, approvalStatus: true, startedAt: true, completedAt: true },
-  });
+  const { viewer, task } = await viewerOnTask(taskId);
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
+  if (!canRequestCompletion(viewer, task.assigneeId))
+    return { ok: false, error: DENIED };
   if (task.approvalStatus !== "ACTIVE")
     return { ok: false, error: "المهمة غير نشطة" };
 
@@ -309,10 +370,9 @@ export async function requestCompletion(
  * Manager approves completion → DONE.
  */
 export async function approveCompletion(taskId: string): Promise<TaskActionResult> {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { id: true, projectId: true, title: true, approvalStatus: true, startedAt: true },
-  });
+  const { viewer, task, membership } = await viewerOnTask(taskId);
+  if (!canReviewCompletion(viewer, membership))
+    return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
   if (task.approvalStatus !== "PENDING_COMPLETION")
     return { ok: false, error: "المهمة ليست في انتظار موافقة الإتمام" };
@@ -345,10 +405,9 @@ export async function approveCompletion(taskId: string): Promise<TaskActionResul
  * Manager rejects completion — task returns to ACTIVE.
  */
 export async function rejectCompletion(taskId: string): Promise<TaskActionResult> {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { id: true, projectId: true, title: true, approvalStatus: true },
-  });
+  const { viewer, task, membership } = await viewerOnTask(taskId);
+  if (!canReviewCompletion(viewer, membership))
+    return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
   if (task.approvalStatus !== "PENDING_COMPLETION")
     return { ok: false, error: "المهمة ليست في انتظار موافقة الإتمام" };
@@ -379,10 +438,8 @@ export async function rejectCompletion(taskId: string): Promise<TaskActionResult
  * Super-admin deletes any task from any project.
  */
 export async function deleteTask(taskId: string): Promise<TaskActionResult> {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { id: true, projectId: true, title: true },
-  });
+  const { viewer, task } = await viewerOnTask(taskId);
+  if (!canDeleteTask(viewer)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
 
   await prisma.task.delete({ where: { id: taskId } });
@@ -413,8 +470,10 @@ export async function addProjectMember(input: {
   projectId: string;
   userId: string;
   role: "MANAGER" | "MEMBER";
-  addedByName: string;
 }): Promise<MemberActionResult> {
+  const { viewer, membership } = await viewerOn(input.projectId);
+  if (!canManageMembers(viewer, membership)) return { ok: false, error: DENIED };
+
   // Verify user exists
   const user = await prisma.user.findUnique({
     where: { id: input.userId },
@@ -448,7 +507,7 @@ export async function addProjectMember(input: {
     memberName: user.name,
     projectName: project.name,
     projectId: input.projectId,
-    addedByName: input.addedByName,
+    addedByName: viewer.name,
     role: input.role,
   }).catch((err) => console.error("[email] failed:", err));
 
@@ -464,6 +523,9 @@ export async function removeProjectMember(input: {
   projectId: string;
   userId: string;
 }): Promise<MemberActionResult> {
+  const { viewer, membership: mine } = await viewerOn(input.projectId);
+  if (!canManageMembers(viewer, mine)) return { ok: false, error: DENIED };
+
   const membership = await prisma.projectMember.findUnique({
     where: { userId_projectId: { userId: input.userId, projectId: input.projectId } },
     select: { user: { select: { name: true } } },
@@ -494,6 +556,9 @@ export async function updateProjectMemberRole(input: {
   userId: string;
   role: "MANAGER" | "MEMBER";
 }): Promise<MemberActionResult> {
+  const { viewer, membership: mine } = await viewerOn(input.projectId);
+  if (!canManageMembers(viewer, mine)) return { ok: false, error: DENIED };
+
   const membership = await prisma.projectMember.findUnique({
     where: { userId_projectId: { userId: input.userId, projectId: input.projectId } },
     select: { user: { select: { name: true } } },
@@ -531,6 +596,9 @@ export async function updateProjectDates(input: {
   startDate: string | null;  // YYYY-MM-DD or null
   dueDate:   string | null;  // YYYY-MM-DD or null
 }): Promise<UpdateDatesResult> {
+  const { viewer, membership } = await viewerOn(input.projectId);
+  if (!canEditProject(viewer, membership)) return { ok: false, error: DENIED };
+
   const parseDate = (s: string | null) =>
     s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(`${s}T12:00:00`) : null;
 
@@ -560,6 +628,9 @@ export async function updateProjectDetails(input: {
   githubUrl?: string | null;
   note?: string | null;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { viewer, membership } = await viewerOn(input.projectId);
+  if (!canEditProject(viewer, membership)) return { ok: false, error: DENIED };
+
   const name = input.name.trim();
   if (!name) return { ok: false, error: "اسم المشروع مطلوب" };
 
@@ -595,6 +666,9 @@ export async function updateProjectGithubUrl(input: {
   projectId: string;
   githubUrl: string | null;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { viewer, membership } = await viewerOn(input.projectId);
+  if (!canEditProject(viewer, membership)) return { ok: false, error: DENIED };
+
   const url = input.githubUrl ? input.githubUrl.trim() : null;
 
   await prisma.project.update({
@@ -633,8 +707,12 @@ export async function createUserSystem(input: {
   department?: string;
   password?: string;
   projectId?: string;
-  addedByName?: string;
 }): Promise<CreateUserResult> {
+  // Minting an account — and choosing its account-wide role — is the one thing
+  // reserved entirely for a super admin.
+  const viewer = await requireViewer();
+  if (!canManageUsers(viewer)) return { ok: false, error: DENIED };
+
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
   if (!name) return { ok: false, error: "اسم المستخدم مطلوب" };
@@ -688,7 +766,7 @@ export async function createUserSystem(input: {
         memberName: newUser.name,
         projectName: project.name,
         projectId: input.projectId,
-        addedByName: input.addedByName || "مدير النظام",
+        addedByName: viewer.name,
         role: input.role === "MANAGER" ? "MANAGER" : "MEMBER",
       }).catch((err) => console.error("[email] failed:", err));
     }

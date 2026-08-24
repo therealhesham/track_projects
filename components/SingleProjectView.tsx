@@ -902,7 +902,6 @@ function Pill({ label, variant, onClick }: {
 // ─── AddTaskModal ─────────────────────────────────────────────────────────────
 
 function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () => void }) {
-  const { currentUser } = useRole();
   const [title, setTitle]       = useState("");
   const [assigneeId, setAssigneeId] = useState("");
   const [error, setError]       = useState<string | null>(null);
@@ -915,7 +914,6 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
         projectId: project.id,
         title,
         assigneeId: assigneeId || undefined,
-        addedById: currentUser.id,
       });
       if (!result.ok) { setError(result.error); return; }
       onClose();
