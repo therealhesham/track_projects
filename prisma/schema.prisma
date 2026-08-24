@@ -1,0 +1,205 @@
+// Rawaes — project & task tracking.
+//
+// Nothing here has been applied to any server. This is the schema file only;
+// generating a migration and running it is a separate, deliberate step.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Roles ───────────────────────────────────────────────────────────────────
+
+/// Account-wide role. SUPER_ADMIN oversees every project; MANAGER and MEMBER
+/// only reach the projects they are joined to via ProjectMember.
+enum UserRole {
+  SUPER_ADMIN
+  MANAGER
+  MEMBER
+}
+
+/// A user's role *on one specific project*. Someone can manage one project and
+/// merely take part in another, so this lives on the membership, not the user.
+enum ProjectRole {
+  MANAGER
+  MEMBER
+}
+
+// ── Enumerated states ───────────────────────────────────────────────────────
+
+/// Stored as stable identifiers; the Arabic labels (تخطيط / قائم / متعطل /
+/// مكتمل) are presentation and live in the UI layer.
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  BLOCKED
+  DONE
+}
+
+/// Board columns, in order: جديد / قيد التنفيذ / مراجعة / مكتمل
+enum TaskStage {
+  NEW
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+/// Task lifecycle approval state.
+/// PENDING_APPROVAL → (super-admin approves) → ACTIVE
+/// ACTIVE → (assignee requests completion) → PENDING_COMPLETION
+/// PENDING_COMPLETION → (manager approves) → DONE
+/// PENDING_COMPLETION → (manager rejects) → ACTIVE
+/// PENDING_APPROVAL → (super-admin rejects) → REJECTED
+enum TaskApprovalStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  PENDING_COMPLETION
+  DONE
+  REJECTED
+}
+
+// ── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id    String @id @default(cuid())
+  name  String
+  email String @unique
+
+  /// bcrypt hash. Null means the account cannot sign in with a password yet —
+  /// an invited user who has not set one. Never selected into anything that
+  /// reaches the client.
+  passwordHash String?
+
+  role       UserRole @default(MEMBER)
+  department String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  memberships   ProjectMember[]
+  ownedProjects Project[]       @relation("ProjectOwner")
+  assignedTasks Task[]          @relation("TaskAssignee")
+  addedTasks    Task[]          @relation("TaskAddedBy")
+  activity      ActivityLog[]
+
+  @@map("users")
+}
+
+model Project {
+  id     String @id @default(cuid())
+  name   String
+  /// Short line above the name — the batch or category ("دفعة الربع الرابع").
+  kicker String?
+
+  department String?
+  status     ProjectStatus @default(PLANNING)
+  note       String?       @db.Text
+  startDate  DateTime?     @db.Date
+  dueDate    DateTime?     @db.Date
+
+  /// Optional link to GitHub repository for commits listing (e.g. "https://github.com/owner/repo")
+  githubUrl String?
+
+  /// The single accountable owner shown as "المسؤول" in the projects table.
+  /// Held alongside ProjectMember (not instead of it): this is the one name on
+  /// the row, while memberships carry the full team and their per-project roles.
+  /// An owner is expected to also hold a MANAGER membership — enforce that in
+  /// application code, since the database cannot express it.
+  ownerId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner    User?           @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  members  ProjectMember[]
+  tasks    Task[]
+  activity ActivityLog[]
+
+  @@index([status])
+  @@index([ownerId])
+  @@map("projects")
+}
+
+/// Join table: a user may sit on many projects, a project holds many users.
+/// The project's manager is the membership whose role is MANAGER.
+model ProjectMember {
+  id        String      @id @default(cuid())
+  userId    String
+  projectId String
+  role      ProjectRole @default(MEMBER)
+  joinedAt  DateTime    @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@index([projectId, role])
+  @@map("project_members")
+}
+
+model Task {
+  id        String    @id @default(cuid())
+  projectId String
+  title     String
+  stage     TaskStage @default(NEW)
+
+  /// Manual ordering inside a board column.
+  position Int @default(0)
+
+  assigneeId String?
+
+  /// Who added this task (manager or member).
+  addedById String?
+
+  /// Approval lifecycle state.
+  approvalStatus TaskApprovalStatus @default(PENDING_APPROVAL)
+
+  /// Optional note from the assignee when they request completion.
+  completionNote String? @db.Text
+
+  /// When the assignee marked this task as complete (requested completion).
+  completionRequestedAt DateTime?
+
+  /// When the manager approved the completion.
+  managerApprovedAt DateTime?
+
+  /// Set when the task first leaves NEW; cleared if it is sent back.
+  startedAt DateTime?
+  /// Set only when the task reaches DONE after manager approval.
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  addedBy  User?   @relation("TaskAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+
+  @@index([projectId, stage, position])
+  @@index([assigneeId])
+  @@index([addedById])
+  @@index([approvalStatus])
+  @@index([startedAt])
+  @@index([completedAt])
+  @@map("tasks")
+}
+
+/// Append-only feed behind "آخر التحديثات".
+model ActivityLog {
+  id        String  @id @default(cuid())
+  projectId String
+  /// Null when the entry was written by the system rather than a person.
+  userId    String?
+  message   String  @db.Text
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@map("activity_log")
+}

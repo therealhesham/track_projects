@@ -1,0 +1,9 @@
+<svg viewBox="0 0 120 120" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
+  <title>إدارة المشاريع</title>
+  <!-- Heavier strokes and a tighter ring than the in-app mark: at 16px the
+       full-size proportions collapse into mush. -->
+  <path d="M60 12 A48 48 0 0 0 60 108" fill="none" stroke="#c9a06b" stroke-width="11" stroke-linecap="round"/>
+  <path d="M60 12 A48 48 0 0 1 60 108" fill="none" stroke="#00485c" stroke-width="11" stroke-linecap="round"/>
+  <rect x="36" y="45" width="48" height="10" rx="5" fill="#00485c"/>
+  <rect x="36" y="61" width="30" height="10" rx="5" fill="#c9a06b"/>
+</svg>

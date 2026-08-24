@@ -1,0 +1,82 @@
+import type { ProjectRole, UserRole } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+
+/**
+ * Who can see and change what.
+ *
+ * Two independent axes, as agreed:
+ *  - the account-wide `UserRole` — SUPER_ADMIN oversees everything;
+ *  - the per-project `ProjectRole` on a membership — MANAGER runs that one
+ *    project, MEMBER works inside it.
+ *
+ * Every rule lives here rather than being spelled out at each call site, so
+ * there is one place to audit and one place to change.
+ */
+
+export type Viewer = {
+  id: string;
+  role: UserRole;
+};
+
+/** SUPER_ADMIN sees every project; everyone else sees only what they joined. */
+export function projectScope(viewer: Viewer): Prisma.ProjectWhereInput {
+  if (viewer.role === "SUPER_ADMIN") return {};
+  return { members: { some: { userId: viewer.id } } };
+}
+
+export function canViewProject(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || membership !== null;
+}
+
+/**
+ * Editing a project's own record — renaming it, changing status or due date.
+ * Reserved for whoever runs it.
+ */
+export function canEditProject(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || membership === "MANAGER";
+}
+
+/**
+ * Moving tasks. Any member of the project may do this — that is the daily work
+ * of the board, and restricting it to managers would make the tool useless to
+ * the people actually doing the tasks.
+ */
+export function canMoveTask(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || membership !== null;
+}
+
+/** Adding or removing people on a project. */
+export function canManageMembers(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || membership === "MANAGER";
+}
+
+/**
+ * Creating a project. MEMBER cannot — otherwise the board fills with work
+ * nobody is accountable for.
+ */
+export function canCreateProject(viewer: Viewer): boolean {
+  return viewer.role === "SUPER_ADMIN" || viewer.role === "MANAGER";
+}
+
+/** Only a super admin administers accounts. */
+export function canManageUsers(viewer: Viewer): boolean {
+  return viewer.role === "SUPER_ADMIN";
+}
+
+export const ROLE_LABEL: Record<UserRole, string> = {
+  SUPER_ADMIN: "مدير عام",
+  MANAGER: "مدير",
+  MEMBER: "عضو",
+};

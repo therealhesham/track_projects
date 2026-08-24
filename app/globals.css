@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/* Design tokens ported from the "Broadsheet" design system as it was tuned for
+   Rawaes: the page-level palette override in the source design, lifted here so
+   every utility (`bg-paper`, `text-accent`, `shadow-md`, …) resolves to the same
+   values the design was drawn with. */
+@theme {
+  /* — ground & ink —
+     White ground. `surface` sits one step below it so cards, inputs and the
+     phone frame still read as raised without carrying a tint, and `line` is a
+     neutral rule in place of the old warm one. */
+  --color-paper: #ffffff;
+  --color-surface: #f4f5f6;
+  --color-ink: #12262d;
+  --color-line: #e2e5e7;
+
+  /* — primary accent: the logo's teal — */
+  --color-accent: #00485c;
+  --color-accent-100: #e3ecef;
+  --color-accent-200: #c8dbe1;
+  --color-accent-600: #003848;
+  --color-accent-700: #002a37;
+  --color-accent-800: #002a37;
+
+  /* — secondary accent: the logo's gold — */
+  --color-gold: #c9a06b;
+  --color-gold-100: #f6ecdd;
+  --color-gold-600: #8a6a34;
+  --color-gold-800: #6d4c1e;
+
+  /* — the quiet chip pair, for statuses that carry no signal — */
+  --color-mute-100: #f8f4f4;
+  --color-mute-800: #444141;
+
+  --font-sans: var(--font-tajawal), system-ui, sans-serif;
+
+  /* Near-square corners are load-bearing in this system: it reads as print. */
+  --radius-sm: 1px;
+  --radius-md: 2px;
+  --radius-lg: 4px;
+
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
+  --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
+}
+
+/* One place to tune the page gutter. Every screen uses this instead of
+   repeating `mx-auto max-w-[…] px-…`, so the measure can be retuned once
+   rather than in a dozen files. */
+@utility shell {
+  margin-inline: auto;
+  max-width: 1600px;
+  padding-inline: 1.75rem;
+}
+
+@layer base {
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    /* Tajawal runs small for its point size, and this is a dense Arabic
+       interface — 16px base with a little more leading. */
+    font-size: 16px;
+    line-height: 1.65;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+  }
+
+  a {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--color-accent-600);
+  }
+
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+}

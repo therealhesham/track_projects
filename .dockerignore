@@ -1,0 +1,23 @@
+# ملفات مش محتاجينها جوه الصورة — بتصغّر الـ build context وبتسرّع البناء
+node_modules
+.next
+.git
+.gitignore
+
+# أسرار — لازم تتمرّر وقت التشغيل مش تتحط في الصورة
+.env
+.env.*
+!.env.example
+
+# أدوات وتوثيق
+README.md
+.claude
+.vscode
+.idea
+Dockerfile
+.dockerignore
+
+# سجلات وملفات مؤقتة
+*.log
+npm-debug.log*
+.DS_Store
