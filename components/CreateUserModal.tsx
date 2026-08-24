@@ -177,7 +177,7 @@ export default function CreateUserModal({
             disabled={pending || !name.trim() || !email.trim()}
             className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-5 py-2 text-[14px] font-semibold text-white transition hover:bg-accent-600 disabled:opacity-40"
           >
-            <Sparkles className="h-4 w-4" />
+            {/* <Sparkles className="h-4 w-4" /> */}
             {pending ? "جارٍ الإنشـاء…" : "إنشاء المستخدم"}
           </button>
         </div>
