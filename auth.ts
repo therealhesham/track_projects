@@ -31,6 +31,7 @@ function debugAuth(reason: string, email: string) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   // JWT rather than database sessions: the session carries only id/name/role,
   // so there is no need for the adapter's extra tables.
   session: { strategy: "jwt", maxAge: 60 * 60 * 8 },
