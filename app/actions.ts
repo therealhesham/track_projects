@@ -238,6 +238,7 @@ export async function addTask(input: {
   projectId: string;
   title: string;
   assigneeId?: string;
+  startDate?: string | null;
   dueDate?: string | null;
 }): Promise<TaskActionResult> {
   const { viewer, membership } = await viewerOn(input.projectId);
@@ -260,6 +261,7 @@ export async function addTask(input: {
       assigneeId: input.assigneeId || null,
       addedById: viewer.id,
       approvalStatus: "PENDING_APPROVAL",
+      startDate: input.startDate ? new Date(input.startDate) : null,
       dueDate: input.dueDate ? new Date(input.dueDate) : null,
     },
   });

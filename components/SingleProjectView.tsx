@@ -816,22 +816,22 @@ function TaskCard({ task, who, isLast }: {
           {who && <span className="text-ink/35">{who}</span>}
 
           {/* ── Timeline indicator ─────────────────────────────── */}
-          {(task.startedDay || task.dueDate || task.completedDay) && (
+          {(task.startDate || task.startedDay || task.dueDate || task.completedDay) && (
             <span className="inline-flex items-center gap-1.5 rounded-md border border-ink/8 bg-surface px-2 py-0.5">
-              {/* Started */}
-              {task.startedDay && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-ink/45">
+              {/* Start Date */}
+              {(task.startDate || task.startedDay) && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-ink/60 font-medium">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent/60" aria-hidden />
-                  <span>بدأت {task.startedDay}</span>
+                  <span>البداية {task.startDate || task.startedDay}</span>
                 </span>
               )}
 
               {/* Separator */}
-              {task.startedDay && (task.completedDay || task.dueDate) && (
+              {(task.startDate || task.startedDay) && (task.completedDay || task.dueDate) && (
                 <span className="text-ink/20 text-[10px]">—</span>
               )}
 
-              {/* Completed */}
+              {/* Completed / Due Date */}
               {task.completedDay ? (
                 <span className="inline-flex items-center gap-1 text-[11px] text-accent font-medium">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
@@ -853,7 +853,7 @@ function TaskCard({ task, who, isLast }: {
                     }`}
                     aria-hidden
                   />
-                  <span>الموعد {task.dueDate}</span>
+                  <span>النهاية {task.dueDate}</span>
                 </span>
               ) : null}
             </span>
@@ -948,6 +948,7 @@ function Pill({ label, variant, onClick }: {
 function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () => void }) {
   const [title, setTitle]         = useState("");
   const [assigneeId, setAssigneeId] = useState("");
+  const [startDate, setStartDate]  = useState("");
   const [dueDate, setDueDate]     = useState("");
   const [error, setError]         = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -959,6 +960,7 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
         projectId: project.id,
         title,
         assigneeId: assigneeId || undefined,
+        startDate: startDate || null,
         dueDate: dueDate || null,
       });
       if (!result.ok) { setError(result.error); return; }
@@ -1023,15 +1025,27 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
             </select>
           </label>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] text-ink/50">الموعد النهائي للمهمة (اختياري)</span>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full rounded-xl border border-ink/15 bg-paper px-4 py-2.5 text-[14px] text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/12"
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12px] text-ink/50">تاريخ البداية (اختياري)</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-xl border border-ink/15 bg-paper px-3.5 py-2.5 text-[13px] text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/12"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12px] text-ink/50">تاريخ النهاية / الموعد (اختياري)</span>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full rounded-xl border border-ink/15 bg-paper px-3.5 py-2.5 text-[13px] text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/12"
+              />
+            </label>
+          </div>
 
           <p className="rounded-xl border border-gold-600/15 bg-gold-100 px-4 py-3 text-[12px] leading-relaxed text-gold-800">
             ستُضاف المهمة في حالة «انتظار الاعتماد» ريثما يوافق عليها المسؤول.

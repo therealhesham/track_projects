@@ -50,6 +50,8 @@ export type TaskView = {
   startedDay: string | null;
   completedDay: string | null;
   completionRequestedDay: string | null;
+  /** Optional planned start date for the task. */
+  startDate: string | null;
   /** Optional planned deadline for the task. */
   dueDate: string | null;
 };
@@ -117,6 +119,7 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
     startedDay: t.startedAt ? ymd(t.startedAt) : null,
     completedDay: t.completedAt ? ymd(t.completedAt) : null,
     completionRequestedDay: t.completionRequestedAt ? ymd(t.completionRequestedAt) : null,
+    startDate: t.startDate ? ymd(t.startDate) : null,
     dueDate: t.dueDate ? ymd(t.dueDate) : null,
   }));
 

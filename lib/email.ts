@@ -64,7 +64,7 @@ export async function sendMemberInviteEmail({
     process.env.NEXTAUTH_URL ??
     process.env.APP_URL ??
     "http://localhost:3000";
-  const link     = `${appUrl}/projects/${projectId}`;
+  const link = `${appUrl}/projects/${projectId}`;
 
   const subject = `تمت إضافتك إلى مشروع "${projectName}"`;
 
@@ -176,14 +176,14 @@ export async function sendNewUserWelcomeEmail({
     role === "SUPER_ADMIN"
       ? "مدير عام النظام"
       : role === "MANAGER"
-      ? "مدير مشروع"
-      : "عضو فريق";
+        ? "مدير مشروع"
+        : "عضو فريق";
 
   const appUrl =
     process.env.AUTH_URL ??
     process.env.NEXTAUTH_URL ??
     process.env.APP_URL ??
-    "http://localhost:3000";
+    "https://projects.rawaes.com";
 
   const loginLink = `${appUrl}/login`;
   const projectLink = projectId ? `${appUrl}/projects/${projectId}` : null;
@@ -234,34 +234,31 @@ export async function sendNewUserWelcomeEmail({
                     <td width="120" style="color:#64748b;">البريد الإلكتروني:</td>
                     <td><strong>${userEmail}</strong></td>
                   </tr>
-                  ${
-                    password
-                      ? `<tr>
+                  ${password
+      ? `<tr>
                     <td style="color:#64748b;">كلمة المرور:</td>
                     <td><code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;font-family:monospace;font-weight:bold;color:#0f172a;">${password}</code></td>
                   </tr>`
-                      : ""
-                  }
+      : ""
+    }
                   <tr>
                     <td style="color:#64748b;">الدور:</td>
                     <td><strong>${roleLabel}</strong></td>
                   </tr>
-                  ${
-                    department
-                      ? `<tr>
+                  ${department
+      ? `<tr>
                     <td style="color:#64748b;">القسم:</td>
                     <td><strong>${department}</strong></td>
                   </tr>`
-                      : ""
-                  }
-                  ${
-                    projectName
-                      ? `<tr>
+      : ""
+    }
+                  ${projectName
+      ? `<tr>
                     <td style="color:#64748b;">المشروع:</td>
                     <td><strong>${projectName}</strong></td>
                   </tr>`
-                      : ""
-                  }
+      : ""
+    }
                 </table>
               </div>
 

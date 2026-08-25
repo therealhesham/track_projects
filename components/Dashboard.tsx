@@ -90,6 +90,7 @@ export default function Dashboard({
 
             {screen === "calendar" && (
               <CalendarScreen
+                projects={projects}
                 grid={grid}
                 today={today}
                 movements={movements}

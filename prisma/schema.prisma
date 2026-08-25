@@ -172,6 +172,9 @@ model Task {
   /// Set only when the task reaches DONE after manager approval.
   completedAt DateTime?
 
+  /// Optional planned start date for this specific task.
+  startDate DateTime? @db.Date
+
   /// Optional planned deadline for this specific task.
   dueDate DateTime? @db.Date
 
