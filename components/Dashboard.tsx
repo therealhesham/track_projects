@@ -33,7 +33,7 @@ export default function Dashboard({
   grid: MonthGrid;
   today: string;
 }) {
-  const [screen, setScreen] = useState<ScreenKey>("projects");
+  const [screen, setScreen] = useState<ScreenKey>("calendar");
   const [filter, setFilter] = useState<FilterKey>("ALL");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(today);

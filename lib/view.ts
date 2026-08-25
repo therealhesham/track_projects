@@ -173,12 +173,25 @@ export function movementsOf(
   const isSuperAdmin = viewer?.role === "SUPER_ADMIN";
 
   for (const p of projects) {
+    // Is this viewer a MANAGER on this specific project?
+    const isManagerOfProject =
+      viewer &&
+      p.members.some(
+        (m) => m.userId === viewer.id && m.projectRole === "MANAGER",
+      );
+
     for (const t of p.tasks) {
-      // Non-super-admin users only see tasks assigned to them on the global calendar
-      if (viewer && !isSuperAdmin) {
-        if (t.assigneeId !== viewer.id) {
-          continue;
-        }
+      // Super Admin → sees everything
+      if (isSuperAdmin) {
+        // fall through — include all tasks
+      }
+      // Manager of this project → sees all tasks in that project
+      else if (isManagerOfProject) {
+        // fall through — include all tasks in this project
+      }
+      // Otherwise (Member, or Manager on a different project) → own tasks only
+      else if (viewer && t.assigneeId !== viewer.id) {
+        continue;
       }
 
       const base = {

@@ -52,6 +52,7 @@ export default function CalendarScreen({
 }) {
   const { currentUser } = useRole();
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
+  const isManager = currentUser.role === "MANAGER";
 
   const started = movements.filter(
     (m) => m.kind === "start" && m.day === selectedDay,
@@ -70,7 +71,12 @@ export default function CalendarScreen({
             {isSuperAdmin ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-0.5 text-[12px] font-medium text-accent">
                 <Shield className="h-3.5 w-3.5" />
-                عرض كافة المشاريع (سوبر أدمن)
+                عرض كافة المشاريع (مدير عام)
+              </span>
+            ) : isManager ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold-100 px-2.5 py-0.5 text-[12px] font-medium text-gold-800">
+                <Shield className="h-3.5 w-3.5" />
+                مشاريعي ومهام فريقي
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full border border-ink/10 bg-ink/6 px-2.5 py-0.5 text-[12px] font-medium text-ink/60">
