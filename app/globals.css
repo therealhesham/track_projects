@@ -70,9 +70,16 @@
   h5,
   h6 {
     margin: 0;
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1.12;
     letter-spacing: -0.015em;
+  }
+
+  input[type="password"] {
+    font-family: caption, Verdana, sans-serif;
+    letter-spacing: 0.18em;
+    font-size: 1.15rem;
+    font-weight: 700;
   }
 
   a {

@@ -52,11 +52,11 @@ export default function StatsStrip({
           {figures.map((f) => (
             <div key={f.label} className="text-start">
               <div
-                className={`text-[24px] leading-none font-semibold tabular-nums ${f.tone}`}
+                className={`text-[24px] leading-none font-bold tabular-nums ${f.tone}`}
               >
                 {f.value}
               </div>
-              <div className="mt-1 text-[13px] tracking-[0.02em] text-ink/55">
+              <div className="mt-1 text-[13px] font-bold tracking-[0.02em] text-ink/65">
                 {f.label}
               </div>
             </div>

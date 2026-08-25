@@ -3,14 +3,13 @@
 import { useState, useTransition } from "react";
 import { advanceTask } from "@/app/actions";
 import type { MonthGrid } from "@/lib/calendar";
-import type { FilterKey, MobileTab, ScreenKey } from "@/lib/labels";
+import type { FilterKey, ScreenKey } from "@/lib/labels";
 import type { Viewer } from "@/lib/permissions";
 import type { MovementView, ProjectView } from "@/lib/view";
 import NavBar from "./NavBar";
 import StatsStrip from "./StatsStrip";
 import BoardScreen from "./screens/BoardScreen";
 import CalendarScreen from "./screens/CalendarScreen";
-import MobileScreen from "./screens/MobileScreen";
 import ProjectsScreen from "./screens/ProjectsScreen";
 import { RoleProvider, type CurrentUser } from "./RoleContext";
 
@@ -38,9 +37,6 @@ export default function Dashboard({
   const [filter, setFilter] = useState<FilterKey>("ALL");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(today);
-
-  const [mobileTab, setMobileTab] = useState<MobileTab>("المشاريع");
-  const [mobileSelectedId, setMobileSelectedId] = useState<string | null>(null);
 
   const [pending, startTransition] = useTransition();
 
@@ -99,17 +95,6 @@ export default function Dashboard({
                 movements={movements}
                 selectedDay={selectedDay}
                 onSelectDay={setSelectedDay}
-              />
-            )}
-
-            {screen === "mobile" && (
-              <MobileScreen
-                projects={projects}
-                filter={filter}
-                tab={mobileTab}
-                onTabChange={setMobileTab}
-                selectedId={mobileSelectedId}
-                onSelect={setMobileSelectedId}
               />
             )}
           </>

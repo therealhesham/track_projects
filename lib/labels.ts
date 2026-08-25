@@ -56,7 +56,6 @@ export const SCREENS = [
   { key: "projects", label: "المشاريع" },
   { key: "board", label: "لوحة المهام" },
   { key: "calendar", label: "التقويم" },
-  { key: "mobile", label: "الجوّال" },
 ] as const;
 
 export type ScreenKey = (typeof SCREENS)[number]["key"];

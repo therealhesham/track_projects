@@ -216,7 +216,7 @@ function ProjectPage({
             </span>
 
             {/* Title */}
-            <h1 className="text-[32px] font-semibold leading-[1.12] tracking-tight text-ink">
+            <h1 className="text-[32px] font-bold leading-[1.12] tracking-tight text-ink">
               {project.name}
             </h1>
 

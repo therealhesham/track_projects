@@ -21,8 +21,8 @@ export function SectionLabel({
 }) {
   return (
     <div
-      className={`text-[12px] tracking-[0.1em] ${
-        tone === "gold" ? "text-gold-800" : "text-ink/55"
+      className={`text-[12px] font-bold tracking-[0.08em] ${
+        tone === "gold" ? "text-gold-800" : "text-ink/65"
       } ${className}`}
     >
       {children}
@@ -68,7 +68,7 @@ export default function ProjectDetail({
       {panel && (
         <>
           <SectionLabel tone="gold">المشروع المحدد</SectionLabel>
-          <h2 className="mt-2.5 mb-1.5 text-[27px] leading-[1.25]">
+          <h2 className="mt-2.5 mb-1.5 text-[27px] font-bold text-ink leading-[1.25]">
             {project.name}
           </h2>
         </>

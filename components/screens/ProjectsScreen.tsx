@@ -9,7 +9,7 @@ import Segmented from "../ui/Segmented";
 import StatusTag from "../ui/StatusTag";
 
 const TH =
-  "px-2.5 py-2.5 text-start text-[12px] font-normal tracking-[0.08em] text-ink/60 border-b border-ink/16";
+  "px-2.5 py-2.5 text-start text-[13px] font-bold tracking-[0.05em] text-ink/75 border-b border-ink/20";
 const TD = "px-2.5 py-2.5 border-b border-ink/8";
 
 export default function ProjectsScreen({
@@ -76,7 +76,7 @@ export default function ProjectsScreen({
                     <Link
                       href={`/projects/${p.id}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="text-base font-semibold hover:text-accent transition-colors block"
+                      className="text-base font-bold text-ink hover:text-accent transition-colors block"
                     >
                       {p.name}
                     </Link>
