@@ -6,7 +6,7 @@ import type { TaskApprovalStatus, TaskStage, ProjectRole, UserRole } from "@pris
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { nextStage } from "@/lib/labels";
-import { sendMemberInviteEmail } from "@/lib/email";
+import { sendMemberInviteEmail, sendNewUserWelcomeEmail } from "@/lib/email";
 import {
   canAddTask,
   canApproveTask,
@@ -501,15 +501,18 @@ export async function addProjectMember(input: {
     },
   });
 
-  // Fire-and-forget email (don't let email failure block the action)
-  sendMemberInviteEmail({
-    to: user.email,
-    memberName: user.name,
-    projectName: project.name,
-    projectId: input.projectId,
-    addedByName: viewer.name,
-    role: input.role,
-  }).catch((err) => console.error("[email] failed:", err));
+  try {
+    await sendMemberInviteEmail({
+      to: user.email,
+      memberName: user.name,
+      projectName: project.name,
+      projectId: input.projectId,
+      addedByName: viewer.name,
+      role: input.role,
+    });
+  } catch (err) {
+    console.error("[email] failed:", err);
+  }
 
   revalidatePath("/");
   revalidatePath(`/projects/${input.projectId}`);
@@ -740,12 +743,14 @@ export async function createUserSystem(input: {
     },
   });
 
+  let projectName: string | undefined;
   if (input.projectId) {
     const project = await prisma.project.findUnique({
       where: { id: input.projectId },
       select: { id: true, name: true },
     });
     if (project) {
+      projectName = project.name;
       await prisma.projectMember.create({
         data: {
           userId: newUser.id,
@@ -760,16 +765,23 @@ export async function createUserSystem(input: {
           message: `تم إنشاء حساب جديد لـ ${newUser.name} وإضافته للمشروع`,
         },
       });
-
-      sendMemberInviteEmail({
-        to: newUser.email,
-        memberName: newUser.name,
-        projectName: project.name,
-        projectId: input.projectId,
-        addedByName: viewer.name,
-        role: input.role === "MANAGER" ? "MANAGER" : "MEMBER",
-      }).catch((err) => console.error("[email] failed:", err));
     }
+  }
+
+  try {
+    await sendNewUserWelcomeEmail({
+      to: newUser.email,
+      userName: newUser.name,
+      userEmail: newUser.email,
+      password: rawPass,
+      role: input.role,
+      department: input.department,
+      addedByName: viewer.name,
+      projectName,
+      projectId: input.projectId,
+    });
+  } catch (err) {
+    console.error("[email] welcome email failed:", err);
   }
 
   revalidatePath("/");
