@@ -50,6 +50,8 @@ export type TaskView = {
   startedDay: string | null;
   completedDay: string | null;
   completionRequestedDay: string | null;
+  /** Optional planned deadline for the task. */
+  dueDate: string | null;
 };
 
 export type ActivityView = { when: string; what: string };
@@ -115,6 +117,7 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
     startedDay: t.startedAt ? ymd(t.startedAt) : null,
     completedDay: t.completedAt ? ymd(t.completedAt) : null,
     completionRequestedDay: t.completionRequestedAt ? ymd(t.completionRequestedAt) : null,
+    dueDate: t.dueDate ? ymd(t.dueDate) : null,
   }));
 
   const doneCount = tasks.filter((t) => t.done).length;

@@ -14,6 +14,7 @@ export default function AddTaskDialog({
 }) {
   const [title, setTitle] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +39,7 @@ export default function AddTaskDialog({
         projectId: project.id,
         title,
         assigneeId: assigneeId || undefined,
+        dueDate: dueDate || null,
       });
       if (!result.ok) {
         setError(result.error);
@@ -122,6 +124,22 @@ export default function AddTaskDialog({
                   </option>
                 ))}
             </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="task-due-date"
+              className="text-[12px] tracking-wide text-ink/60"
+            >
+              الموعد النهائي للمهمة (اختياري)
+            </label>
+            <input
+              id="task-due-date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full rounded-md border border-ink/20 bg-white px-3 py-2 text-[14px] outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
+            />
           </div>
 
           {/* Info banner */}

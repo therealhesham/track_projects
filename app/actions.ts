@@ -238,6 +238,7 @@ export async function addTask(input: {
   projectId: string;
   title: string;
   assigneeId?: string;
+  dueDate?: string | null;
 }): Promise<TaskActionResult> {
   const { viewer, membership } = await viewerOn(input.projectId);
   if (!canAddTask(viewer, membership)) return { ok: false, error: DENIED };
@@ -259,6 +260,7 @@ export async function addTask(input: {
       assigneeId: input.assigneeId || null,
       addedById: viewer.id,
       approvalStatus: "PENDING_APPROVAL",
+      dueDate: input.dueDate ? new Date(input.dueDate) : null,
     },
   });
 
@@ -274,6 +276,7 @@ export async function addTask(input: {
   revalidatePath(`/projects/${input.projectId}`);
   return { ok: true };
 }
+
 
 /**
  * Super-admin approves a pending task → ACTIVE.

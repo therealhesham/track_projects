@@ -812,11 +812,55 @@ function TaskCard({ task, who, isLast }: {
         </div>
 
         {/* Sub-meta */}
-        <div className="mt-1 flex flex-wrap items-center gap-3 text-[12px] text-ink/35">
-          {who && <span>{who}</span>}
-          {task.completedDay && <span className="tabular-nums">{task.completedDay}</span>}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+          {who && <span className="text-ink/35">{who}</span>}
+
+          {/* ── Timeline indicator ─────────────────────────────── */}
+          {(task.startedDay || task.dueDate || task.completedDay) && (
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-ink/8 bg-surface px-2 py-0.5">
+              {/* Started */}
+              {task.startedDay && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-ink/45">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent/60" aria-hidden />
+                  <span>بدأت {task.startedDay}</span>
+                </span>
+              )}
+
+              {/* Separator */}
+              {task.startedDay && (task.completedDay || task.dueDate) && (
+                <span className="text-ink/20 text-[10px]">—</span>
+              )}
+
+              {/* Completed */}
+              {task.completedDay ? (
+                <span className="inline-flex items-center gap-1 text-[11px] text-accent font-medium">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+                  <span>انتهت {task.completedDay}</span>
+                </span>
+              ) : task.dueDate ? (
+                <span
+                  className={`inline-flex items-center gap-1 text-[11px] font-medium ${
+                    task.dueDate < new Date().toISOString().slice(0, 10)
+                      ? "text-red-500"
+                      : "text-gold-800"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      task.dueDate < new Date().toISOString().slice(0, 10)
+                        ? "bg-red-400"
+                        : "bg-gold"
+                    }`}
+                    aria-hidden
+                  />
+                  <span>الموعد {task.dueDate}</span>
+                </span>
+              ) : null}
+            </span>
+          )}
+
           {task.completionNote && isPendingCompletion && (
-            <span className="italic">"{task.completionNote}"</span>
+            <span className="text-[12px] italic text-ink/35">"{task.completionNote}"</span>
           )}
         </div>
       </div>
@@ -902,9 +946,10 @@ function Pill({ label, variant, onClick }: {
 // ─── AddTaskModal ─────────────────────────────────────────────────────────────
 
 function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () => void }) {
-  const [title, setTitle]       = useState("");
+  const [title, setTitle]         = useState("");
   const [assigneeId, setAssigneeId] = useState("");
-  const [error, setError]       = useState<string | null>(null);
+  const [dueDate, setDueDate]     = useState("");
+  const [error, setError]         = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const submit = () => {
@@ -914,6 +959,7 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
         projectId: project.id,
         title,
         assigneeId: assigneeId || undefined,
+        dueDate: dueDate || null,
       });
       if (!result.ok) { setError(result.error); return; }
       onClose();
@@ -975,6 +1021,16 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] text-ink/50">الموعد النهائي للمهمة (اختياري)</span>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full rounded-xl border border-ink/15 bg-paper px-4 py-2.5 text-[14px] text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/12"
+            />
           </label>
 
           <p className="rounded-xl border border-gold-600/15 bg-gold-100 px-4 py-3 text-[12px] leading-relaxed text-gold-800">
