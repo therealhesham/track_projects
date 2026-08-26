@@ -6,7 +6,11 @@ import type { TaskApprovalStatus, TaskStage, ProjectRole, UserRole } from "@pris
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { nextStage } from "@/lib/labels";
-import { sendMemberInviteEmail, sendNewUserWelcomeEmail } from "@/lib/email";
+import {
+  sendCompletionReviewEmail,
+  sendMemberInviteEmail,
+  sendNewUserWelcomeEmail,
+} from "@/lib/email";
 import {
   canAddTask,
   canApproveTask,
@@ -369,9 +373,77 @@ export async function requestCompletion(
     },
   });
 
+  await notifyManagersOfCompletionRequest({
+    projectId: task.projectId,
+    taskTitle: task.title,
+    requestedById: viewer.id,
+    requestedByName: viewer.name,
+    note: note?.trim() || null,
+  });
+
   revalidatePath("/");
   revalidatePath(`/projects/${task.projectId}`);
   return { ok: true };
+}
+
+/**
+ * Email every manager of the project that a task is waiting on them.
+ *
+ * Delivery is best-effort: the request itself has already been recorded, and a
+ * bounced notification must not make the member think their click failed. The
+ * board still shows the task under PENDING_COMPLETION either way.
+ */
+async function notifyManagersOfCompletionRequest(input: {
+  projectId: string;
+  taskTitle: string;
+  requestedById: string;
+  requestedByName: string;
+  note: string | null;
+}) {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: input.projectId },
+      select: {
+        name: true,
+        members: {
+          // Whoever can sign this off — canReviewCompletion in lib/permissions
+          // grants that to a project MANAGER. Super admins can approve too but
+          // are not mailed: they oversee every project and would drown.
+          where: { role: "MANAGER" },
+          select: { user: { select: { id: true, name: true, email: true } } },
+        },
+      },
+    });
+    if (!project) return;
+
+    // A manager reporting their own task does not need to mail themselves.
+    const recipients = project.members
+      .map((m) => m.user)
+      .filter((u) => u.id !== input.requestedById);
+
+    if (recipients.length === 0) {
+      console.warn(
+        `[email] task "${input.taskTitle}" awaits approval but project ${input.projectId} has no manager to notify`,
+      );
+      return;
+    }
+
+    await Promise.all(
+      recipients.map((u) =>
+        sendCompletionReviewEmail({
+          to: u.email,
+          managerName: u.name,
+          taskTitle: input.taskTitle,
+          projectName: project.name,
+          projectId: input.projectId,
+          requestedByName: input.requestedByName,
+          note: input.note,
+        }),
+      ),
+    );
+  } catch (err) {
+    console.error("[email] completion-review notification failed:", err);
+  }
 }
 
 /**

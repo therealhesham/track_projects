@@ -38,6 +38,116 @@ const from =
   process.env.SMTP_FROM ?? "إدارة المشاريع <no-reply@projects.local>";
 
 /**
+ * The public origin used in every emailed link. AUTH_URL is the canonical one
+ * (Auth.js reads it too), so a single variable drives both the session
+ * callbacks and the links we send out.
+ */
+function appOrigin() {
+  return (
+    process.env.AUTH_URL ??
+    process.env.NEXTAUTH_URL ??
+    process.env.APP_URL ??
+    "http://localhost:3000"
+  );
+}
+
+/**
+ * The shared chrome around every email we send: header bar, white card,
+ * footer. Only the middle changes, so callers pass their own body markup and
+ * an optional call-to-action button.
+ */
+function emailShell({
+  headerTitle = "منصة إدارة المشاريع",
+  body,
+  ctaLabel,
+  ctaLink,
+  footnote,
+}: {
+  headerTitle?: string;
+  body: string;
+  ctaLabel?: string;
+  ctaLink?: string;
+  footnote?: string;
+}) {
+  const cta =
+    ctaLabel && ctaLink
+      ? `
+              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="border-radius:8px;background:#00485c;">
+                    <a href="${ctaLink}"
+                      style="display:inline-block;padding:12px 28px;font-size:14px;
+                             font-weight:600;color:#ffffff;text-decoration:none;">
+                      ${ctaLabel}
+                    </a>
+                  </td>
+                </tr>
+              </table>`
+      : "";
+
+  return `
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="margin:0;padding:0;background:#f4f5f6;font-family:system-ui,sans-serif;direction:rtl;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0"
+          style="background:#ffffff;border-radius:12px;border:1px solid #e2e5e7;overflow:hidden;">
+
+          <!-- Header bar -->
+          <tr>
+            <td style="background:#00485c;padding:24px 32px;">
+              <p style="margin:0;font-size:18px;font-weight:600;color:#ffffff;">
+                ${headerTitle}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+${body}
+${cta}
+              ${footnote
+                  ? `<p style="margin:0;font-size:13px;color:#8a9aa0;">${footnote}</p>`
+                  : ""
+                }
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="border-top:1px solid #e2e5e7;padding:16px 32px;">
+              <p style="margin:0;font-size:12px;color:#a0adb2;">
+                منصة إدارة المشاريع الداخلية
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+/** Send, and in dev without SMTP echo what would have gone out. */
+async function deliver(to: string, subject: string, html: string) {
+  const info = await createTransport().sendMail({ from, to, subject, html });
+
+  if (!process.env.SMTP_HOST) {
+    console.log("[email:dev] Would send to", to, "—", subject);
+    console.log("[email:dev]", JSON.stringify(info, null, 2));
+  }
+}
+
+/**
  * Send a project-invitation email to a newly added member.
  * Falls back to console.log when SMTP is not configured.
  */
@@ -57,95 +167,23 @@ export async function sendMemberInviteEmail({
   role: "MANAGER" | "MEMBER";
 }) {
   const roleLabel = role === "MANAGER" ? "مدير مشروع" : "عضو فريق";
-  // AUTH_URL is the canonical public origin (Auth.js reads it too), so one
-  // variable drives both the session callbacks and the links we email out.
-  const appUrl =
-    process.env.AUTH_URL ??
-    process.env.NEXTAUTH_URL ??
-    process.env.APP_URL ??
-    "http://localhost:3000";
-  const link = `${appUrl}/projects/${projectId}`;
 
-  const subject = `تمت إضافتك إلى مشروع "${projectName}"`;
-
-  const html = `
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-</head>
-<body style="margin:0;padding:0;background:#f4f5f6;font-family:system-ui,sans-serif;direction:rtl;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
-    <tr>
-      <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0"
-          style="background:#ffffff;border-radius:12px;border:1px solid #e2e5e7;overflow:hidden;">
-
-          <!-- Header bar -->
-          <tr>
-            <td style="background:#00485c;padding:24px 32px;">
-              <p style="margin:0;font-size:18px;font-weight:600;color:#ffffff;">
-                إدارة المشاريع
-              </p>
-            </td>
-          </tr>
-
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px;">
+  const html = emailShell({
+    headerTitle: "إدارة المشاريع",
+    body: `
               <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#12262d;">
                 مرحباً ${memberName}،
               </p>
               <p style="margin:0 0 24px;font-size:15px;color:#4a6068;line-height:1.7;">
                 قام <strong>${addedByName}</strong> بإضافتك إلى مشروع
                 <strong>"${projectName}"</strong> بصفة <strong>${roleLabel}</strong>.
-              </p>
+              </p>`,
+    ctaLabel: "فتح المشروع",
+    ctaLink: `${appOrigin()}/projects/${projectId}`,
+    footnote: "إذا لم تكن تتوقع هذه الرسالة، يمكنك تجاهلها.",
+  });
 
-              <!-- CTA -->
-              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-                <tr>
-                  <td style="border-radius:8px;background:#00485c;">
-                    <a href="${link}"
-                      style="display:inline-block;padding:12px 28px;font-size:14px;
-                             font-weight:600;color:#ffffff;text-decoration:none;">
-                      فتح المشروع
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              <p style="margin:0;font-size:13px;color:#8a9aa0;">
-                إذا لم تكن تتوقع هذه الرسالة، يمكنك تجاهلها.
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="border-top:1px solid #e2e5e7;padding:16px 32px;">
-              <p style="margin:0;font-size:12px;color:#a0adb2;">
-                منصة إدارة المشاريع الداخلية
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-  const transport = createTransport();
-
-  const info = await transport.sendMail({ from, to, subject, html });
-
-  // In dev without SMTP, log the rendered email JSON
-  if (!process.env.SMTP_HOST) {
-    console.log("[email:dev] Would send to", to, "—", subject);
-    console.log("[email:dev]", JSON.stringify(info, null, 2));
-  }
+  await deliver(to, `تمت إضافتك إلى مشروع "${projectName}"`, html);
 }
 
 /**
@@ -179,44 +217,12 @@ export async function sendNewUserWelcomeEmail({
         ? "مدير مشروع"
         : "عضو فريق";
 
-  const appUrl =
-    process.env.AUTH_URL ??
-    process.env.NEXTAUTH_URL ??
-    process.env.APP_URL ??
-    "https://projects.rawaes.com";
-
-  const loginLink = `${appUrl}/login`;
+  const appUrl = appOrigin();
   const projectLink = projectId ? `${appUrl}/projects/${projectId}` : null;
-  const targetLink = projectLink || loginLink;
+  const targetLink = projectLink ?? `${appUrl}/login`;
 
-  const subject = `مرحباً بك في منصة إدارة المشاريع - بيانات حسابك الجديد`;
-
-  const html = `
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-</head>
-<body style="margin:0;padding:0;background:#f4f5f6;font-family:system-ui,sans-serif;direction:rtl;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
-    <tr>
-      <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0"
-          style="background:#ffffff;border-radius:12px;border:1px solid #e2e5e7;overflow:hidden;">
-
-          <!-- Header bar -->
-          <tr>
-            <td style="background:#00485c;padding:24px 32px;">
-              <p style="margin:0;font-size:18px;font-weight:600;color:#ffffff;">
-                منصة إدارة المشاريع
-              </p>
-            </td>
-          </tr>
-
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px;">
+  const html = emailShell({
+    body: `
               <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#12262d;">
                 مرحباً ${userName}،
               </p>
@@ -260,49 +266,66 @@ export async function sendNewUserWelcomeEmail({
       : ""
     }
                 </table>
-              </div>
+              </div>`,
+    ctaLabel: projectName ? "فتح المشروع" : "تسجيل الدخول إلى النظام",
+    ctaLink: targetLink,
+    footnote: "يمكنك تغيير كلمة المرور بعد تسجيل الدخول لأول مرة.",
+  });
 
-              <!-- CTA -->
-              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-                <tr>
-                  <td style="border-radius:8px;background:#00485c;">
-                    <a href="${targetLink}"
-                      style="display:inline-block;padding:12px 28px;font-size:14px;
-                             font-weight:600;color:#ffffff;text-decoration:none;">
-                      ${projectName ? "فتح المشروع" : "تسجيل الدخول إلى النظام"}
-                    </a>
-                  </td>
-                </tr>
-              </table>
+  await deliver(
+    to,
+    "مرحباً بك في منصة إدارة المشاريع - بيانات حسابك الجديد",
+    html,
+  );
+}
 
-              <p style="margin:0;font-size:13px;color:#8a9aa0;">
-                يمكنك تغيير كلمة المرور بعد تسجيل الدخول لأول مرة.
+/**
+ * Tell a project's managers that an assignee has asked for their task to be
+ * signed off. Sent once per manager; the caller decides who those are.
+ */
+export async function sendCompletionReviewEmail({
+  to,
+  managerName,
+  taskTitle,
+  projectName,
+  projectId,
+  requestedByName,
+  note,
+}: {
+  to: string;
+  managerName: string;
+  taskTitle: string;
+  projectName: string;
+  projectId: string;
+  requestedByName: string;
+  note?: string | null;
+}) {
+  const html = emailShell({
+    body: `
+              <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#12262d;">
+                مرحباً ${managerName}،
               </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="border-top:1px solid #e2e5e7;padding:16px 32px;">
-              <p style="margin:0;font-size:12px;color:#a0adb2;">
-                منصة إدارة المشاريع الداخلية
+              <p style="margin:0 0 20px;font-size:15px;color:#4a6068;line-height:1.7;">
+                قام <strong>${requestedByName}</strong> بتسجيل إتمام مهمة في مشروع
+                <strong>"${projectName}"</strong>، وهي الآن بانتظار اعتمادك.
               </p>
-            </td>
-          </tr>
 
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px;">
+                <p style="margin:0 0 6px;font-size:12px;color:#64748b;">المهمة</p>
+                <p style="margin:0;font-size:16px;font-weight:600;color:#0f172a;">
+                  ${taskTitle}
+                </p>
+                ${note
+                  ? `<p style="margin:14px 0 6px;font-size:12px;color:#64748b;">ملاحظة العضو</p>
+                <p style="margin:0;font-size:14px;color:#334155;line-height:1.7;">${note}</p>`
+                  : ""
+                }
+              </div>`,
+    ctaLabel: "مراجعة المهمة واعتمادها",
+    ctaLink: `${appOrigin()}/projects/${projectId}`,
+    footnote: "لن تتحول المهمة إلى «مكتملة» قبل اعتمادك لها.",
+  });
 
-  const transport = createTransport();
-  const info = await transport.sendMail({ from, to, subject, html });
-
-  if (!process.env.SMTP_HOST) {
-    console.log("[email:dev] Would send welcome to", to, "—", subject);
-    console.log("[email:dev]", JSON.stringify(info, null, 2));
-  }
+  await deliver(to, `بانتظار اعتمادك: "${taskTitle}" — ${projectName}`, html);
 }
 
