@@ -213,7 +213,7 @@ export default function ProjectCalendar({
             className="rounded-lg border border-ink/12 p-2 text-ink/60 transition hover:bg-ink/5 hover:text-ink"
             aria-label="الشهر السابق"
           >
-            <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+            <ChevronRight className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -221,7 +221,7 @@ export default function ProjectCalendar({
             className="rounded-lg border border-ink/12 p-2 text-ink/60 transition hover:bg-ink/5 hover:text-ink"
             aria-label="الشهر التالي"
           >
-            <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+            <ChevronLeft className="h-4 w-4" />
           </button>
         </div>
       </div>

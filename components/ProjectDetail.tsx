@@ -146,7 +146,14 @@ export default function ProjectDetail({
             {project.activity.map((a, i) => (
               <div key={i} className="flex gap-3 text-[14px]">
                 <span className="min-w-[58px] text-ink/45">{a.when}</span>
-                <span className="leading-[1.6]">{a.what}</span>
+                <span className="leading-[1.6]">
+                  {a.what}
+                  {a.who && (
+                    <span className="mt-0.5 block text-[12px] text-ink/40">
+                      بواسطة {a.who}
+                    </span>
+                  )}
+                </span>
               </div>
             ))}
           </div>

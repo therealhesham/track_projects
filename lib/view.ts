@@ -22,6 +22,7 @@ export const projectInclude = {
   activity: {
     orderBy: { createdAt: "desc" },
     take: 6,
+    include: { user: { select: { name: true } } },
   },
   members: {
     include: {
@@ -56,7 +57,9 @@ export type TaskView = {
   dueDate: string | null;
 };
 
-export type ActivityView = { when: string; what: string };
+/** `who` is null for system-written entries, and for rows logged before the
+ *  actor was recorded — the feed has to render both. */
+export type ActivityView = { when: string; what: string; who: string | null };
 
 export type MemberView = {
   userId: string;
@@ -143,6 +146,7 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
     activity: row.activity.map((a) => ({
       when: relativeArabic(a.createdAt, now),
       what: a.message,
+      who: a.user?.name ?? null,
     })),
     members: row.members.map((m) => ({
       userId: m.userId,

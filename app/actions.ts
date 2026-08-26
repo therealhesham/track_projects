@@ -298,6 +298,7 @@ export async function approveTask(taskId: string): Promise<TaskActionResult> {
   await prisma.activityLog.create({
     data: {
       projectId: task.projectId,
+      userId: viewer.id,
       message: `تم اعتماد المهمة: "${task.title}"`,
     },
   });
@@ -325,6 +326,7 @@ export async function rejectTask(taskId: string): Promise<TaskActionResult> {
   await prisma.activityLog.create({
     data: {
       projectId: task.projectId,
+      userId: viewer.id,
       message: `تم رفض المهمة: "${task.title}"`,
     },
   });
@@ -362,6 +364,7 @@ export async function requestCompletion(
   await prisma.activityLog.create({
     data: {
       projectId: task.projectId,
+      userId: viewer.id,
       message: `طلب تسجيل إتمام المهمة: "${task.title}"`,
     },
   });
@@ -397,7 +400,8 @@ export async function approveCompletion(taskId: string): Promise<TaskActionResul
   await prisma.activityLog.create({
     data: {
       projectId: task.projectId,
-      message: `وافق المدير على إتمام المهمة: "${task.title}"`,
+      userId: viewer.id,
+      message: `تمت الموافقة على إتمام المهمة: "${task.title}"`,
     },
   });
 
@@ -430,7 +434,8 @@ export async function rejectCompletion(taskId: string): Promise<TaskActionResult
   await prisma.activityLog.create({
     data: {
       projectId: task.projectId,
-      message: `رفض المدير إتمام المهمة، وأُعيدت للعمل: "${task.title}"`,
+      userId: viewer.id,
+      message: `تم رفض إتمام المهمة، وأُعيدت للعمل: "${task.title}"`,
     },
   });
 
@@ -452,7 +457,8 @@ export async function deleteTask(taskId: string): Promise<TaskActionResult> {
   await prisma.activityLog.create({
     data: {
       projectId: task.projectId,
-      message: `حذف السوبر ادمن المهمة: "${task.title}"`,
+      userId: viewer.id,
+      message: `تم حذف المهمة: "${task.title}"`,
     },
   });
 
@@ -502,6 +508,7 @@ export async function addProjectMember(input: {
   await prisma.activityLog.create({
     data: {
       projectId: input.projectId,
+      userId: viewer.id,
       message: `تمت إضافة ${user.name} كـ${input.role === "MANAGER" ? "مدير مشروع" : "عضو"} في المشروع`,
     },
   });
@@ -547,6 +554,7 @@ export async function removeProjectMember(input: {
   await prisma.activityLog.create({
     data: {
       projectId: input.projectId,
+      userId: viewer.id,
       message: `تمت إزالة ${membership.user.name} من المشروع`,
     },
   });
@@ -581,6 +589,7 @@ export async function updateProjectMemberRole(input: {
   await prisma.activityLog.create({
     data: {
       projectId: input.projectId,
+      userId: viewer.id,
       message: `تم تعديل دور ${membership.user.name} إلى ${input.role === "MANAGER" ? "مدير مشروع" : "عضو"}`,
     },
   });
@@ -658,6 +667,7 @@ export async function updateProjectDetails(input: {
   await prisma.activityLog.create({
     data: {
       projectId: input.projectId,
+      userId: viewer.id,
       message: `تم تعديل بيانات المشروع: "${name}"`,
     },
   });
@@ -689,6 +699,7 @@ export async function updateProjectGithubUrl(input: {
   await prisma.activityLog.create({
     data: {
       projectId: input.projectId,
+      userId: viewer.id,
       message: url ? `تم ربط المستودع على GitHub: ${url}` : "تم إلغاء ربط مستودع GitHub",
     },
   });
@@ -775,6 +786,7 @@ export async function createUserSystem(input: {
       await prisma.activityLog.create({
         data: {
           projectId: input.projectId,
+          userId: viewer.id,
           message: `تم إنشاء حساب جديد لـ ${newUser.name} وإضافته للمشروع`,
         },
       });

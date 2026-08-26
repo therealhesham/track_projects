@@ -174,7 +174,7 @@ function ProjectPage({
             href="/"
             className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-ink/50 transition-colors hover:bg-ink/5 hover:text-ink"
           >
-            <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+            <ChevronRight className="h-4 w-4" />
             المشاريع
           </Link>
 
@@ -378,7 +378,14 @@ function ProjectPage({
                     {project.activity.map((a, i) => (
                       <div key={i} className="flex gap-3 py-3 text-[13px]">
                         <span className="w-12 shrink-0 pt-[2px] text-[11px] tabular-nums text-ink/30">{a.when}</span>
-                        <span className="leading-[1.65] text-ink/65">{a.what}</span>
+                        <span className="leading-[1.65] text-ink/65">
+                          {a.what}
+                          {a.who && (
+                            <span className="mt-0.5 block text-[11px] text-ink/35">
+                              بواسطة {a.who}
+                            </span>
+                          )}
+                        </span>
                       </div>
                     ))}
                   </div>
