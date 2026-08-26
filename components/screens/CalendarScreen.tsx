@@ -25,12 +25,57 @@ import {
   ChevronLeft,
   CalendarDays,
   FolderKanban,
+  X,
 } from "lucide-react";
 
 export type ProjectTaskSpan = TaskSpan & {
   projectName: string;
   projectId: string;
 };
+
+/** One task as it appears in the side panel and in the day modal — the two
+ *  places that show a span in full rather than as a bar in a grid cell. */
+function SpanRow({ span }: { span: ProjectTaskSpan }) {
+  const cfg = TASK_STATUS_CONFIG[span.task.approvalStatus];
+  return (
+    <div className="flex flex-col gap-1.5 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${cfg.dotBg}`} />
+          {cfg.label}
+        </span>
+
+        <span className="inline-flex items-center gap-1 text-[11px] text-ink/50 font-medium">
+          <FolderKanban className="h-3 w-3" />
+          {span.projectName}
+        </span>
+      </div>
+
+      <p className="text-[14px] font-semibold leading-snug text-ink">
+        {span.task.title}
+      </p>
+
+      <div className="flex flex-col gap-1 text-[12px] text-ink/55 pt-1">
+        <div className="flex items-center gap-1.5">
+          <Clock className="h-3.5 w-3.5 text-ink/35" />
+          <span>تاريخ البداية: <strong>{span.startDay}</strong></span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5 text-ink/35" />
+          <span>تاريخ النهاية / الموعد: <strong>{span.endDay}</strong></span>
+        </div>
+        {span.task.assignee && (
+          <div className="flex items-center gap-1.5">
+            <User className="h-3.5 w-3.5 text-ink/35" />
+            <span>المسؤول: {span.task.assignee}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function CalendarScreen({
   projects = [],
@@ -52,6 +97,10 @@ export default function CalendarScreen({
 
   const [currentYear, setCurrentYear] = useState(initialGrid.year);
   const [currentMonth, setCurrentMonth] = useState(initialGrid.month);
+
+  /** Day whose full task list is open in the modal, or null. A cell only has
+   *  room for three bars; this is how the rest are reachable. */
+  const [modalDay, setModalDay] = useState<string | null>(null);
 
   const grid = buildMonthGrid(currentYear, currentMonth);
 
@@ -100,6 +149,10 @@ export default function CalendarScreen({
   const selectedDaySpans = allSpans.filter(
     (s) => s.startDay <= selectedDay && selectedDay <= s.endDay
   );
+
+  const modalDaySpans = modalDay
+    ? allSpans.filter((s) => s.startDay <= modalDay && modalDay <= s.endDay)
+    : [];
 
   return (
     <div className="shell flex flex-col gap-6 pt-6 pb-20">
@@ -270,7 +323,19 @@ export default function CalendarScreen({
                       );
                     })}
                     {daySpans.length > 3 && (
-                      <span className="text-[10px] font-medium text-ink/40">
+                      // A span, not a button: the whole cell is already a
+                      // button and nesting one inside another is invalid.
+                      // Keyboard users reach the same list by selecting the
+                      // day — the side panel shows every task without a cap.
+                      <span
+                        role="link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectDay(dayYmd);
+                          setModalDay(dayYmd);
+                        }}
+                        className="cursor-pointer text-[10px] font-medium text-ink/40 underline-offset-2 transition hover:text-accent hover:underline"
+                      >
                         +{daySpans.length - 3} المزيد
                       </span>
                     )}
@@ -300,52 +365,56 @@ export default function CalendarScreen({
                   لا توجد مهام نشطة في هذا اليوم.
                 </p>
               ) : (
-                selectedDaySpans.map((span) => {
-                  const cfg = TASK_STATUS_CONFIG[span.task.approvalStatus];
-                  return (
-                    <div key={`${span.projectId}-${span.task.id}`} className="flex flex-col gap-1.5 py-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full ${cfg.dotBg}`} />
-                          {cfg.label}
-                        </span>
-
-                        <span className="inline-flex items-center gap-1 text-[11px] text-ink/50 font-medium">
-                          <FolderKanban className="h-3 w-3" />
-                          {span.projectName}
-                        </span>
-                      </div>
-
-                      <p className="text-[14px] font-semibold leading-snug text-ink">
-                        {span.task.title}
-                      </p>
-
-                      <div className="flex flex-col gap-1 text-[12px] text-ink/55 pt-1">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="h-3.5 w-3.5 text-ink/35" />
-                          <span>تاريخ البداية: <strong>{span.startDay}</strong></span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-ink/35" />
-                          <span>تاريخ النهاية / الموعد: <strong>{span.endDay}</strong></span>
-                        </div>
-                        {span.task.assignee && (
-                          <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 text-ink/35" />
-                            <span>المسؤول: {span.task.assignee}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
+                selectedDaySpans.map((span) => (
+                  <SpanRow key={`${span.projectId}-${span.task.id}`} span={span} />
+                ))
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Full task list for one day — opened from "+N المزيد" in a cell */}
+      {modalDay && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/20 p-4 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalDay(null);
+          }}
+        >
+          <div className="flex max-h-[80vh] w-full max-w-[520px] flex-col overflow-hidden rounded-2xl border border-ink/10 bg-paper shadow-lg">
+            <div className="flex items-center justify-between border-b border-ink/8 px-6 py-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-accent" />
+                <div className="flex flex-col">
+                  <h3 className="text-[16px] font-semibold text-ink">
+                    {formatDayTitle(modalDay)}
+                  </h3>
+                  <span className="text-[12px] text-ink/45">
+                    {modalDaySpans.length} مهمة نشطة في هذا اليوم
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalDay(null)}
+                aria-label="إغلاق"
+                className="rounded-lg p-1.5 text-ink/35 transition hover:bg-ink/5 hover:text-ink"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col divide-y divide-ink/6 overflow-y-auto px-6 py-2">
+              {modalDaySpans.map((span) => (
+                <SpanRow key={`${span.projectId}-${span.task.id}`} span={span} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
