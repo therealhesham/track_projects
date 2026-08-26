@@ -707,6 +707,11 @@ export type CreateUserResult =
 /**
  * Super-admin creates a new system user account.
  * Optionally joins the user to a project immediately.
+ *
+ * `role` is the account-wide role; `projectRole` is the separate per-project
+ * one. The caller passes both because they answer different questions — see
+ * lib/permissions. When `projectRole` is omitted we fall back to deriving it
+ * from the account role, which is only a guess.
  */
 export async function createUserSystem(input: {
   name: string;
@@ -715,6 +720,7 @@ export async function createUserSystem(input: {
   department?: string;
   password?: string;
   projectId?: string;
+  projectRole?: "MANAGER" | "MEMBER";
 }): Promise<CreateUserResult> {
   // Minting an account — and choosing its account-wide role — is the one thing
   // reserved entirely for a super admin.
@@ -760,7 +766,9 @@ export async function createUserSystem(input: {
         data: {
           userId: newUser.id,
           projectId: input.projectId,
-          role: input.role === "MANAGER" ? "MANAGER" : "MEMBER",
+          role:
+            (input.projectRole as ProjectRole | undefined) ??
+            (input.role === "MEMBER" ? "MEMBER" : "MANAGER"),
         },
       });
 

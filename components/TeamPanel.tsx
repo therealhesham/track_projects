@@ -53,6 +53,10 @@ export default function TeamPanel({
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserRole, setNewUserRole] = useState<"SUPER_ADMIN" | "MANAGER" | "MEMBER">("MEMBER");
+  // Kept separate from the account-wide role above: picking "مدير" for the
+  // system does not decide what they do on *this* project. Changing the system
+  // role only re-suggests a value here.
+  const [newUserProjectRole, setNewUserProjectRole] = useState<"MANAGER" | "MEMBER">("MEMBER");
   const [newUserDept, setNewUserDept] = useState("");
   const [newUserPass, setNewUserPass] = useState("");
 
@@ -95,6 +99,7 @@ export default function TeamPanel({
         name: newUserName,
         email: newUserEmail,
         role: newUserRole,
+        projectRole: newUserProjectRole,
         department: newUserDept || undefined,
         password: newUserPass || undefined,
         projectId: project.id,
@@ -396,9 +401,11 @@ export default function TeamPanel({
                     </span>
                     <select
                       value={newUserRole}
-                      onChange={(e) =>
-                        setNewUserRole(e.target.value as "SUPER_ADMIN" | "MANAGER" | "MEMBER")
-                      }
+                      onChange={(e) => {
+                        const next = e.target.value as "SUPER_ADMIN" | "MANAGER" | "MEMBER";
+                        setNewUserRole(next);
+                        setNewUserProjectRole(next === "MEMBER" ? "MEMBER" : "MANAGER");
+                      }}
                       className="w-full rounded-xl border border-ink/15 bg-paper px-3 py-2 text-[13px] text-ink outline-none transition focus:border-accent"
                     >
                       <option value="MEMBER">عضو (MEMBER)</option>
@@ -409,17 +416,38 @@ export default function TeamPanel({
 
                   <label className="flex flex-col gap-1">
                     <span className="text-[12px] font-medium text-ink/50">
-                      القسم (اختياري)
+                      الدور في هذا المشروع
                     </span>
-                    <input
-                      type="text"
-                      value={newUserDept}
-                      onChange={(e) => setNewUserDept(e.target.value)}
-                      placeholder="تقنية المعلومات"
+                    <select
+                      value={newUserProjectRole}
+                      onChange={(e) =>
+                        setNewUserProjectRole(e.target.value as "MANAGER" | "MEMBER")
+                      }
                       className="w-full rounded-xl border border-ink/15 bg-paper px-3 py-2 text-[13px] text-ink outline-none transition focus:border-accent"
-                    />
+                    >
+                      <option value="MEMBER">عضو فريق (MEMBER)</option>
+                      <option value="MANAGER">مدير مشروع (MANAGER)</option>
+                    </select>
                   </label>
                 </div>
+
+                <p className="-mt-1 text-[11px] leading-relaxed text-ink/40">
+                  دور النظام يحدد صلاحياته العامة (إنشاء المشاريع وإدارة الحسابات)،
+                  ودور المشروع يحدد صلاحياته داخل هذا المشروع فقط. الاثنان مستقلان.
+                </p>
+
+                <label className="flex flex-col gap-1">
+                  <span className="text-[12px] font-medium text-ink/50">
+                    القسم (اختياري)
+                  </span>
+                  <input
+                    type="text"
+                    value={newUserDept}
+                    onChange={(e) => setNewUserDept(e.target.value)}
+                    placeholder="تقنية المعلومات"
+                    className="w-full rounded-xl border border-ink/15 bg-paper px-3.5 py-2 text-[13px] text-ink outline-none transition focus:border-accent"
+                  />
+                </label>
 
                 <label className="flex flex-col gap-1">
                   <span className="text-[12px] font-medium text-ink/50">
