@@ -1,4 +1,4 @@
-import type { ProjectRole, UserRole } from "@prisma/client";
+import type { ProjectRole, TaskApprovalStatus, UserRole } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
 /**
@@ -111,6 +111,74 @@ export function canDeleteTask(viewer: Viewer): boolean {
  */
 export function canCreateProject(viewer: Viewer): boolean {
   return viewer.role === "SUPER_ADMIN" || viewer.role === "MANAGER";
+}
+
+// ── Daily tasks ─────────────────────────────────────────────────────────────
+
+/**
+ * Daily tasks hang off a person, not a project, so the second axis above — the
+ * ProjectRole from a membership — has nothing to say about them. What replaces
+ * it is ownership: you reach your own, a super admin reaches everyone's.
+ *
+ * That leaves the approval gates with only one candidate. A project task is
+ * admitted by a super admin and signed off by the project's manager; with no
+ * project there is no manager, so the super admin does both.
+ */
+
+/** SUPER_ADMIN sees every daily task; everyone else only their own. */
+export function dailyTaskScope(viewer: Viewer): Prisma.DailyTaskWhereInput {
+  if (viewer.role === "SUPER_ADMIN") return {};
+  return { ownerId: viewer.id };
+}
+
+export function canViewDailyTask(viewer: Viewer, ownerId: string): boolean {
+  return viewer.role === "SUPER_ADMIN" || viewer.id === ownerId;
+}
+
+/** Writing one down. For yourself always; for someone else only a super admin. */
+export function canAddDailyTaskFor(viewer: Viewer, ownerId: string): boolean {
+  return viewer.role === "SUPER_ADMIN" || viewer.id === ownerId;
+}
+
+/**
+ * Whether to offer an owner picker at all — the question the *form* asks, as
+ * opposed to canAddDailyTaskFor, which judges one already-chosen owner.
+ */
+export function canAssignDailyTaskToOthers(viewer: Viewer): boolean {
+  return viewer.role === "SUPER_ADMIN";
+}
+
+/** Letting a proposed daily task into the list, or turning it away. */
+export function canApproveDailyTask(viewer: Viewer): boolean {
+  return viewer.role === "SUPER_ADMIN";
+}
+
+/** Asking for one's own daily task to be marked done. */
+export function canRequestDailyCompletion(
+  viewer: Viewer,
+  ownerId: string,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || viewer.id === ownerId;
+}
+
+/** Signing off that request, or sending it back. */
+export function canReviewDailyCompletion(viewer: Viewer): boolean {
+  return viewer.role === "SUPER_ADMIN";
+}
+
+/**
+ * Removing a daily task. An owner may withdraw one that never entered the list
+ * — still pending, or already turned away. Once it is live, deleting it would
+ * erase work the super admin approved, so only they may.
+ */
+export function canDeleteDailyTask(
+  viewer: Viewer,
+  ownerId: string,
+  approvalStatus: TaskApprovalStatus,
+): boolean {
+  if (viewer.role === "SUPER_ADMIN") return true;
+  if (viewer.id !== ownerId) return false;
+  return approvalStatus === "PENDING_APPROVAL" || approvalStatus === "REJECTED";
 }
 
 /** Only a super admin administers accounts. */

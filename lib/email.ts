@@ -329,3 +329,54 @@ export async function sendCompletionReviewEmail({
   await deliver(to, `بانتظار اعتمادك: "${taskTitle}" — ${projectName}`, html);
 }
 
+/**
+ * The same nudge for a daily task. It has no project behind it, so there is no
+ * project page to link to and no manager to address — the review falls to the
+ * super admins, and the link goes to the daily-tasks tab on the home screen.
+ */
+export async function sendDailyCompletionReviewEmail({
+  to,
+  reviewerName,
+  taskTitle,
+  dayLabel,
+  requestedByName,
+  note,
+}: {
+  to: string;
+  reviewerName: string;
+  taskTitle: string;
+  dayLabel: string;
+  requestedByName: string;
+  note?: string | null;
+}) {
+  const html = emailShell({
+    body: `
+              <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#12262d;">
+                مرحباً ${reviewerName}،
+              </p>
+              <p style="margin:0 0 20px;font-size:15px;color:#4a6068;line-height:1.7;">
+                قام <strong>${requestedByName}</strong> بتسجيل إتمام مهمة يومية،
+                وهي الآن بانتظار اعتمادك.
+              </p>
+
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px;">
+                <p style="margin:0 0 6px;font-size:12px;color:#64748b;">المهمة</p>
+                <p style="margin:0;font-size:16px;font-weight:600;color:#0f172a;">
+                  ${taskTitle}
+                </p>
+                <p style="margin:14px 0 6px;font-size:12px;color:#64748b;">اليوم</p>
+                <p style="margin:0;font-size:14px;color:#334155;">${dayLabel}</p>
+                ${note
+                  ? `<p style="margin:14px 0 6px;font-size:12px;color:#64748b;">ملاحظة العضو</p>
+                <p style="margin:0;font-size:14px;color:#334155;line-height:1.7;">${note}</p>`
+                  : ""
+                }
+              </div>`,
+    ctaLabel: "مراجعة المهمة واعتمادها",
+    ctaLink: `${appOrigin()}/`,
+    footnote: "لن تتحول المهمة إلى «مكتملة» قبل اعتمادك لها.",
+  });
+
+  await deliver(to, `بانتظار اعتمادك: مهمة يومية "${taskTitle}"`, html);
+}
+

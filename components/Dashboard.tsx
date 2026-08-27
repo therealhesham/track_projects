@@ -5,11 +5,13 @@ import { advanceTask } from "@/app/actions";
 import type { MonthGrid } from "@/lib/calendar";
 import type { FilterKey, ScreenKey } from "@/lib/labels";
 import type { Viewer } from "@/lib/permissions";
-import type { MovementView, ProjectView } from "@/lib/view";
+import type { DailyTaskView, MovementView, ProjectView } from "@/lib/view";
+import type { AssignableUser } from "./AddDailyTaskDialog";
 import NavBar from "./NavBar";
 import StatsStrip from "./StatsStrip";
 import BoardScreen from "./screens/BoardScreen";
 import CalendarScreen from "./screens/CalendarScreen";
+import DailyTasksScreen from "./screens/DailyTasksScreen";
 import ProjectsScreen from "./screens/ProjectsScreen";
 import { RoleProvider, type CurrentUser } from "./RoleContext";
 
@@ -22,6 +24,8 @@ export default function Dashboard({
   viewer,
   canCreate,
   projects,
+  dailyTasks,
+  assignableUsers,
   movements,
   grid,
   today,
@@ -29,6 +33,8 @@ export default function Dashboard({
   viewer: Viewer & { name: string; email: string };
   canCreate: boolean;
   projects: ProjectView[];
+  dailyTasks: DailyTaskView[];
+  assignableUsers: AssignableUser[];
   movements: MovementView[];
   grid: MonthGrid;
   today: string;
@@ -66,7 +72,15 @@ export default function Dashboard({
           onScreenChange={setScreen}
         />
 
-        {projects.length === 0 ? (
+        {/* Daily tasks hang off the viewer, not a project, so this tab stands on
+            its own — it has to work on an account with no projects at all. */}
+        {screen === "daily" ? (
+          <DailyTasksScreen
+            dailyTasks={dailyTasks}
+            assignableUsers={assignableUsers}
+            today={today}
+          />
+        ) : projects.length === 0 ? (
           <div className="shell pt-16 text-center">
             <p className="text-[15px] text-ink/55">
               لا توجد مشاريع بعد. اضغط «مشروع جديد» للبدء.
@@ -91,6 +105,7 @@ export default function Dashboard({
             {screen === "calendar" && (
               <CalendarScreen
                 projects={projects}
+                dailyTasks={dailyTasks}
                 grid={grid}
                 today={today}
                 movements={movements}

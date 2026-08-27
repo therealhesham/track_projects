@@ -55,6 +55,7 @@ export type FilterKey = (typeof STATUS_FILTERS)[number]["key"];
 export const SCREENS = [
   { key: "projects", label: "المشاريع" },
   { key: "board", label: "لوحة المهام" },
+  { key: "daily", label: "مهامي اليومية" },
   { key: "calendar", label: "التقويم" },
 ] as const;
 

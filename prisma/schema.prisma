@@ -80,11 +80,13 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  memberships   ProjectMember[]
-  ownedProjects Project[]       @relation("ProjectOwner")
-  assignedTasks Task[]          @relation("TaskAssignee")
-  addedTasks    Task[]          @relation("TaskAddedBy")
-  activity      ActivityLog[]
+  memberships     ProjectMember[]
+  ownedProjects   Project[]       @relation("ProjectOwner")
+  assignedTasks   Task[]          @relation("TaskAssignee")
+  addedTasks      Task[]          @relation("TaskAddedBy")
+  dailyTasks      DailyTask[]     @relation("DailyTaskOwner")
+  addedDailyTasks DailyTask[]     @relation("DailyTaskAddedBy")
+  activity        ActivityLog[]
 
   @@map("users")
 }
@@ -193,6 +195,60 @@ model Task {
   @@index([startedAt])
   @@index([completedAt])
   @@map("tasks")
+}
+
+/// Day-to-day work that hangs off a person rather than a project — the errands
+/// and small jobs that would otherwise have no home on the board.
+///
+/// Deliberately not a `Task` with a null `projectId`: every query, percentage
+/// and activity entry in this schema reads a task through its project, and a
+/// project-less row would have to be excluded from each one by hand. A separate
+/// table keeps those calculations honest and lets this one carry the fields a
+/// daily task actually needs.
+///
+/// The approval lifecycle is the same `TaskApprovalStatus` as `Task`, but the
+/// gates differ: there is no ProjectMember to consult, so a super admin both
+/// admits the task and signs off its completion. See lib/permissions.
+model DailyTask {
+  id    String  @id @default(cuid())
+  title String
+  note  String? @db.Text
+
+  /// The person carrying the task. Required, unlike `Task.assigneeId` — a daily
+  /// task nobody owns has nothing to sit under.
+  ownerId String
+
+  /// Who wrote it down. Usually the owner; a super admin may hand one out.
+  addedById String?
+
+  /// The calendar day this is planned for. This is what makes the task
+  /// "daily" — the tab groups on it and the calendar places the bar by it.
+  day DateTime @db.Date
+
+  approvalStatus TaskApprovalStatus @default(PENDING_APPROVAL)
+
+  /// Optional note from the owner when they request completion.
+  completionNote String? @db.Text
+
+  completionRequestedAt DateTime?
+  /// When the super admin signed off the completion.
+  managerApprovedAt     DateTime?
+
+  /// Set when the task is admitted to the list; cleared if it is turned away.
+  startedAt DateTime?
+  /// Set only once the completion is approved.
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User  @relation("DailyTaskOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  addedBy User? @relation("DailyTaskAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, day])
+  @@index([approvalStatus])
+  @@index([day])
+  @@map("daily_tasks")
 }
 
 /// Append-only feed behind "آخر التحديثات".

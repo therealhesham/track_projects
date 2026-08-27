@@ -161,6 +161,54 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
   };
 }
 
+// ── Daily tasks ─────────────────────────────────────────────────────────────
+
+export const dailyTaskInclude = {
+  owner: { select: { id: true, name: true } },
+  addedBy: { select: { name: true } },
+} satisfies Prisma.DailyTaskInclude;
+
+export type DailyTaskRow = Prisma.DailyTaskGetPayload<{
+  include: typeof dailyTaskInclude;
+}>;
+
+export type DailyTaskView = {
+  id: string;
+  title: string;
+  note: string | null;
+  /** `YYYY-MM-DD` — the day the task is planned for. Never null. */
+  day: string;
+  dayLabel: string;
+  ownerId: string;
+  owner: string;
+  addedBy: string | null;
+  approvalStatus: TaskApprovalStatus;
+  approvalStatusLabel: string;
+  completionNote: string | null;
+  done: boolean;
+  startedDay: string | null;
+  completedDay: string | null;
+};
+
+export function toDailyTaskView(row: DailyTaskRow): DailyTaskView {
+  return {
+    id: row.id,
+    title: row.title,
+    note: row.note,
+    day: ymd(row.day),
+    dayLabel: formatShortDate(ymd(row.day)),
+    ownerId: row.ownerId,
+    owner: row.owner.name,
+    addedBy: row.addedBy?.name ?? null,
+    approvalStatus: row.approvalStatus,
+    approvalStatusLabel: APPROVAL_STATUS_LABEL[row.approvalStatus],
+    completionNote: row.completionNote,
+    done: row.approvalStatus === "DONE",
+    startedDay: row.startedAt ? ymd(row.startedAt) : null,
+    completedDay: row.completedAt ? ymd(row.completedAt) : null,
+  };
+}
+
 export function metaLine(p: ProjectView): string {
   return [p.dept, p.owner, `التسليم ${p.due}`].filter(Boolean).join(" · ");
 }
