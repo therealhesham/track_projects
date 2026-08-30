@@ -19,19 +19,23 @@ import { useRole } from "./RoleContext";
  * One checkable task line with full approval-lifecycle actions.
  *
  * Action visibility by role:
- *   SUPER_ADMIN: approve/reject pending tasks, delete any task
- *   MANAGER:     approve/reject completion requests, see all tasks
- *   MEMBER:      request completion on their own active tasks
+ *   SUPER_ADMIN:      approve/reject pending tasks, delete any task
+ *   MANAGER (account): approve/reject completion requests, see all tasks
+ *   project manager:  delete tasks within their own project
+ *   MEMBER:           request completion on their own active tasks
  */
 export default function TaskRow({
   task,
   who,
   size = "desktop",
+  isProjectManager,
 }: {
   task: TaskView;
   /** Shown at the far end on desktop. */
   who?: string | null;
   size?: "desktop" | "mobile";
+  /** Whether the viewer manages this specific project (ProjectRole, not the account-wide role). */
+  isProjectManager: boolean;
 }) {
   const { currentUser } = useRole();
   const mobile = size === "mobile";
@@ -148,7 +152,7 @@ export default function TaskRow({
   };
 
   const DeleteBtn = () => {
-    if (!isSuperAdmin) return null;
+    if (!isSuperAdmin && !isProjectManager) return null;
     if (task.approvalStatus === "DONE") return null; // keep history clean
     return (
       <button

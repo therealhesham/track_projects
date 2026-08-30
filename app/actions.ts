@@ -517,11 +517,12 @@ export async function rejectCompletion(taskId: string): Promise<TaskActionResult
 }
 
 /**
- * Super-admin deletes any task from any project.
+ * Deletes a task outright. A super admin may do this anywhere; a project's
+ * own manager may do it within that project.
  */
 export async function deleteTask(taskId: string): Promise<TaskActionResult> {
-  const { viewer, task } = await viewerOnTask(taskId);
-  if (!canDeleteTask(viewer)) return { ok: false, error: DENIED };
+  const { viewer, task, membership } = await viewerOnTask(taskId);
+  if (!canDeleteTask(viewer, membership)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
 
   await prisma.task.delete({ where: { id: taskId } });

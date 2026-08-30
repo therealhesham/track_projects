@@ -42,6 +42,10 @@ export default function ProjectDetail({
   const panel = variant === "panel";
   const [addTaskOpen, setAddTaskOpen] = useState(false);
 
+  const isProjectManager = project.members.some(
+    (m) => m.userId === currentUser.id && m.projectRole === "MANAGER",
+  );
+
   const canAddTask =
     currentUser.role === "SUPER_ADMIN" ||
     currentUser.role === "MANAGER" ||
@@ -130,6 +134,7 @@ export default function ProjectDetail({
             task={task}
             who={task.assignee ?? project.owner}
             size={panel ? "desktop" : "mobile"}
+            isProjectManager={isProjectManager}
           />
         ))}
         {visibleTasks.length === 0 && (

@@ -100,9 +100,12 @@ export function canReviewCompletion(
   return viewer.role === "SUPER_ADMIN" || membership === "MANAGER";
 }
 
-/** Removing a task outright, history and all. */
-export function canDeleteTask(viewer: Viewer): boolean {
-  return viewer.role === "SUPER_ADMIN";
+/** Removing a task outright, history and all. The project's own manager may. */
+export function canDeleteTask(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || membership === "MANAGER";
 }
 
 /**

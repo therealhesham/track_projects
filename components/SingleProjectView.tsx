@@ -86,6 +86,9 @@ function ProjectPage({
 }) {
   const { currentUser } = useRole();
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
+  const isProjectManager = project.members.some(
+    (m) => m.userId === currentUser.id && m.projectRole === "MANAGER",
+  );
 
   const [activeTab, setActiveTab] = useState<"tasks" | "calendar" | "team" | "github">("tasks");
   const [addOpen, setAddOpen] = useState(false);
@@ -351,6 +354,7 @@ function ProjectPage({
                       task={task}
                       who={task.assignee ?? project.owner}
                       isLast={i === visibleTasks.length - 1}
+                      isProjectManager={isProjectManager}
                     />
                   ))}
                 </div>
@@ -757,10 +761,12 @@ function ProgressRing({ pct }: { pct: number }) {
 
 // ─── TaskCard ─────────────────────────────────────────────────────────────────
 
-function TaskCard({ task, who, isLast }: {
+function TaskCard({ task, who, isLast, isProjectManager }: {
   task: TaskView;
   who?: string | null;
   isLast: boolean;
+  /** Whether the viewer manages this specific project (ProjectRole, not the account-wide role). */
+  isProjectManager: boolean;
 }) {
   const { currentUser } = useRole();
   const [showNoteInput, setShowNoteInput] = useState(false);
@@ -911,7 +917,7 @@ function TaskCard({ task, who, isLast }: {
           </>
         )}
 
-        {isSuperAdmin && !isDone && (
+        {(isSuperAdmin || isProjectManager) && !isDone && (
           <button
             type="button"
             title="حذف المهمة"
