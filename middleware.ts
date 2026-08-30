@@ -19,7 +19,9 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    // Everything except Next internals, the auth endpoints and static files.
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|logo-mark.svg|logo.png).*)",
+    // Everything except Next internals, the auth endpoints, the cron
+    // endpoint (its own CRON_SECRET check — no session, since schedulers
+    // can't log in) and static files.
+    "/((?!api/auth|api/cron|_next/static|_next/image|favicon.ico|logo-mark.svg|logo.png).*)",
   ],
 };

@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "task-reminders": "tsx --env-file=.env scripts/task-reminders.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

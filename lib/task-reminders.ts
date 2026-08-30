@@ -1,22 +1,19 @@
 /**
- * Daily reminder sweep. Emails a task's assignee and its project's manager(s)
- * when a task's due date has passed, or falls within DUE_SOON_DAYS days —
- * skipping anything already DONE or REJECTED.
+ * Due-date reminder sweep. Emails a task's assignee and its project's
+ * manager(s) when a task's due date has passed, or falls within
+ * DUE_SOON_DAYS days — skipping anything already DONE or REJECTED.
  *
- * A standalone process, not a server action: this runs off the request cycle
- * on a schedule, not in response to anything a user clicked. Wire it up with
- * system cron (needs Node >= 20.6 for --env-file):
- *
- *   0 8 * * * cd /path/to/app && npm run task-reminders >> /var/log/task-reminders.log 2>&1
+ * Triggered over HTTP by app/api/cron/task-reminders/route.ts, which any
+ * external scheduler (Vercel Cron, cron-job.org, a plain crontab + curl) can
+ * hit on a timer. The logic lives here rather than in the route file so it
+ * stays a plain function — easy to read, test, or call from elsewhere later.
  */
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import {
   sendAssigneeTaskDueReminderEmail,
   sendManagerTaskDueSummaryEmail,
-} from "../lib/email";
-import { formatShortDate, ymd } from "../lib/calendar";
-
-const prisma = new PrismaClient();
+} from "@/lib/email";
+import { formatShortDate, ymd } from "@/lib/calendar";
 
 /** A task due within this many days counts as "close", not just "overdue". */
 const DUE_SOON_DAYS = 3;
@@ -58,7 +55,13 @@ type ProjectGroup = {
   rows: Row[];
 };
 
-async function main() {
+export type TaskReminderSweepResult = {
+  projects: number;
+  sent: number;
+  failed: number;
+};
+
+export async function runTaskReminderSweep(): Promise<TaskReminderSweepResult> {
   const todayYmd = ymd(new Date());
 
   const tasks = await prisma.task.findMany({
@@ -113,11 +116,6 @@ async function main() {
       isOverdue,
       assignee: task.assignee,
     });
-  }
-
-  if (projects.size === 0) {
-    console.log("[task-reminders] no overdue or due-soon tasks — nothing to send");
-    return;
   }
 
   let sent = 0;
@@ -187,14 +185,5 @@ async function main() {
     }
   }
 
-  console.log(
-    `[task-reminders] done — ${sent} email(s) sent, ${failed} failed, across ${projects.size} project(s)`,
-  );
+  return { projects: projects.size, sent, failed };
 }
-
-main()
-  .catch((err) => {
-    console.error("[task-reminders] fatal error:", err);
-    process.exitCode = 1;
-  })
-  .finally(() => prisma.$disconnect());
