@@ -15,7 +15,7 @@ import {
   updateProjectDetails,
 } from "@/app/actions";
 import { APPROVAL_STATUS_TAG, STATUS_LABEL } from "@/lib/labels";
-import type { Viewer } from "@/lib/permissions";
+import { canRequestCompletion, type Viewer } from "@/lib/permissions";
 import type { ProjectView, TaskView } from "@/lib/view";
 import { RoleProvider, useRole, type CurrentUser } from "./RoleContext";
 import ProjectCalendar from "./ProjectCalendar";
@@ -881,7 +881,7 @@ function TaskCard({ task, who, isLast }: {
           </>
         )}
 
-        {task.approvalStatus === "ACTIVE" && isMember && isMyTask && (
+        {task.approvalStatus === "ACTIVE" && canRequestCompletion(currentUser, task.assigneeId) && (
           showNoteInput ? (
             <>
               <input

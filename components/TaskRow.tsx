@@ -12,6 +12,7 @@ import {
   rejectCompletion,
   deleteTask,
 } from "@/app/actions";
+import { canRequestCompletion } from "@/lib/permissions";
 import { useRole } from "./RoleContext";
 
 /**
@@ -71,8 +72,8 @@ export default function TaskRow({
     }
 
     if (task.approvalStatus === "ACTIVE") {
-      // Member can request completion on their task
-      if (isMember && isMyTask) {
+      // Anyone who carries the task (or super admin) can request completion
+      if (canRequestCompletion(currentUser, task.assigneeId)) {
         if (showNoteInput) {
           return (
             <div className="ms-auto flex items-center gap-1.5">
