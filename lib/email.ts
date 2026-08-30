@@ -380,3 +380,145 @@ export async function sendDailyCompletionReviewEmail({
   await deliver(to, `بانتظار اعتمادك: مهمة يومية "${taskTitle}"`, html);
 }
 
+/** One row in a due-date reminder list — shared shape for both audiences below. */
+type DueTaskRow = {
+  title: string;
+  dueDateLabel: string;
+  statusLabel: string;
+  isOverdue: boolean;
+};
+
+function dueTaskRows(tasks: DueTaskRow[], assigneeNames?: string[]) {
+  return tasks
+    .map((t, i) => {
+      const assigneeCell = assigneeNames
+        ? `<p style="margin:4px 0 0;font-size:12px;color:#64748b;">مسندة إلى: ${assigneeNames[i]}</p>`
+        : "";
+      return `
+              <tr>
+                <td style="padding:12px 0;border-top:1px solid #eef1f2;">
+                  <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">${t.title}</p>
+                  <p style="margin:4px 0 0;font-size:12px;color:#64748b;">الموعد: ${t.dueDateLabel}</p>
+                  ${assigneeCell}
+                </td>
+                <td style="padding:12px 0;border-top:1px solid #eef1f2;text-align:left;white-space:nowrap;vertical-align:top;">
+                  <span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;
+                    background:${t.isOverdue ? "#fef2f2" : "#fffbeb"};color:${t.isOverdue ? "#dc2626" : "#b45309"};">
+                    ${t.statusLabel}
+                  </span>
+                </td>
+              </tr>`;
+    })
+    .join("");
+}
+
+/**
+ * Nudge a task's assignee that their deadline has passed or is close. Sent by
+ * the daily reminder sweep (scripts/task-reminders.ts), one email per member
+ * per project — never one per task, so a person with three late tasks in the
+ * same project gets a single list rather than a flood.
+ */
+export async function sendAssigneeTaskDueReminderEmail({
+  to,
+  memberName,
+  projectName,
+  projectId,
+  managerName,
+  tasks,
+}: {
+  to: string;
+  memberName: string;
+  projectName: string;
+  projectId: string;
+  managerName: string;
+  tasks: DueTaskRow[];
+}) {
+  const overdueCount = tasks.filter((t) => t.isOverdue).length;
+  const noun = tasks.length === 1 ? "مهمة" : "مهام";
+  const intro =
+    overdueCount > 0
+      ? `عندك ${noun} في مشروع <strong>"${projectName}"</strong> فات موعدها.`
+      : `عندك ${noun} في مشروع <strong>"${projectName}"</strong> قربت على موعدها.`;
+
+  const html = emailShell({
+    body: `
+              <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#12262d;">
+                مرحباً ${memberName}،
+              </p>
+              <p style="margin:0 0 20px;font-size:15px;color:#4a6068;line-height:1.7;">
+                ${intro}
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+                ${dueTaskRows(tasks)}
+              </table>
+
+              <p style="margin:0;font-size:13px;color:#8a9aa0;">
+                مدير المشروع: <strong style="color:#4a6068;">${managerName}</strong>
+              </p>`,
+    ctaLabel: "فتح المشروع",
+    ctaLink: `${appOrigin()}/projects/${projectId}`,
+    footnote: "رسالة تلقائية من فحص دوري للمواعيد المستحقة.",
+  });
+
+  const subject =
+    overdueCount > 0
+      ? `مهام متأخرة في مشروع "${projectName}"`
+      : `مهام قربت على موعدها في مشروع "${projectName}"`;
+
+  await deliver(to, subject, html);
+}
+
+/**
+ * The project-manager counterpart: one email per manager per project listing
+ * every task that is overdue or close to due, across all assignees, so they
+ * can see where a project is at risk without opening the board.
+ */
+export async function sendManagerTaskDueSummaryEmail({
+  to,
+  managerName,
+  projectName,
+  projectId,
+  tasks,
+}: {
+  to: string;
+  managerName: string;
+  projectName: string;
+  projectId: string;
+  tasks: (DueTaskRow & { assigneeName: string })[];
+}) {
+  const overdueCount = tasks.filter((t) => t.isOverdue).length;
+  const noun = tasks.length === 1 ? "مهمة" : "مهام";
+  const intro =
+    overdueCount > 0
+      ? `فيه ${noun} في مشروع <strong>"${projectName}"</strong> فات موعدها ولسه ملحقتش تخلص.`
+      : `فيه ${noun} في مشروع <strong>"${projectName}"</strong> قربت على موعدها.`;
+
+  const html = emailShell({
+    body: `
+              <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#12262d;">
+                مرحباً ${managerName}،
+              </p>
+              <p style="margin:0 0 20px;font-size:15px;color:#4a6068;line-height:1.7;">
+                ${intro}
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${dueTaskRows(
+                  tasks,
+                  tasks.map((t) => t.assigneeName),
+                )}
+              </table>`,
+    ctaLabel: "فتح المشروع",
+    ctaLink: `${appOrigin()}/projects/${projectId}`,
+    footnote: "رسالة تلقائية من فحص دوري للمواعيد المستحقة.",
+  });
+
+  const subject =
+    overdueCount > 0
+      ? `مهام متأخرة في مشروع "${projectName}"`
+      : `مهام قربت على موعدها في مشروع "${projectName}"`;
+
+  await deliver(to, subject, html);
+}
+
