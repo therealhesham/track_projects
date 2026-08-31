@@ -387,7 +387,8 @@ export async function requestCompletion(
 }
 
 /**
- * Email every manager of the project that a task is waiting on them.
+ * Email every manager of the project — and its owner, the "المسؤول" shown on
+ * the projects table — that a task is waiting on them.
  *
  * Delivery is best-effort: the request itself has already been recorded, and a
  * bounced notification must not make the member think their click failed. The
@@ -405,6 +406,7 @@ async function notifyManagersOfCompletionRequest(input: {
       where: { id: input.projectId },
       select: {
         name: true,
+        owner: { select: { id: true, name: true, email: true } },
         members: {
           // Whoever can sign this off — canReviewCompletion in lib/permissions
           // grants that to a project MANAGER. Super admins can approve too but
@@ -416,10 +418,17 @@ async function notifyManagersOfCompletionRequest(input: {
     });
     if (!project) return;
 
+    const managers = project.members.map((m) => m.user);
+    // The owner is expected to also hold a MANAGER membership (see the
+    // schema's note on Project.ownerId), so this is usually a no-op dedupe —
+    // but the database cannot enforce that, so guard it here too.
+    const withOwner =
+      project.owner && !managers.some((u) => u.id === project.owner!.id)
+        ? [...managers, project.owner]
+        : managers;
+
     // A manager reporting their own task does not need to mail themselves.
-    const recipients = project.members
-      .map((m) => m.user)
-      .filter((u) => u.id !== input.requestedById);
+    const recipients = withOwner.filter((u) => u.id !== input.requestedById);
 
     if (recipients.length === 0) {
       console.warn(
