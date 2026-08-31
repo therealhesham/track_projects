@@ -19,10 +19,11 @@ import { useRole } from "./RoleContext";
  * One checkable task line with full approval-lifecycle actions.
  *
  * Action visibility by role:
- *   SUPER_ADMIN:      approve/reject pending tasks, delete any task
+ *   SUPER_ADMIN:       delete any task
  *   MANAGER (account): approve/reject completion requests, see all tasks
- *   project manager:  delete tasks within their own project
- *   MEMBER:           request completion on their own active tasks
+ *   project manager:   approve/reject pending tasks, delete tasks — both
+ *                       scoped to their own project
+ *   MEMBER:            request completion on their own active tasks
  */
 export default function TaskRow({
   task,
@@ -58,7 +59,7 @@ export default function TaskRow({
 
   const ActionBar = () => {
     if (task.approvalStatus === "PENDING_APPROVAL") {
-      if (!isSuperAdmin) return null;
+      if (!isProjectManager) return null;
       return (
         <div className="ms-auto flex items-center gap-1.5">
           <ActionBtn

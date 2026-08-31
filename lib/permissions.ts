@@ -74,11 +74,13 @@ export function canAddTask(
 }
 
 /**
- * Letting a proposed task into the board, or turning it away. Account-wide
- * oversight, so a super admin and nobody else.
+ * Letting a proposed task into the board, or turning it away. Deliberately
+ * the project's own manager and nobody else — unlike every other gate here,
+ * a super admin does not stand in for them: the work being screened is the
+ * manager's own project, not something needing head-office oversight.
  */
-export function canApproveTask(viewer: Viewer): boolean {
-  return viewer.role === "SUPER_ADMIN";
+export function canApproveTask(membership: ProjectRole | null): boolean {
+  return membership === "MANAGER";
 }
 
 /**

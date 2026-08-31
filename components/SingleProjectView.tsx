@@ -115,7 +115,7 @@ function ProjectPage({
   const canAddTask = true;
 
   const visibleTasks =
-    currentUser.role === "SUPER_ADMIN"
+    currentUser.role === "SUPER_ADMIN" || isProjectManager
       ? project.tasks
       : project.tasks.filter(
           (t) =>
@@ -267,7 +267,7 @@ function ProjectPage({
           <Stat value={`${project.pct}%`}       label="الإنجاز"              accent />
           <Stat value={String(project.doneCount)} label="مكتملة"             />
           <Stat value={String(project.total - project.doneCount)} label="متبقية" />
-          {pendingCount > 0 && currentUser.role === "SUPER_ADMIN" && (
+          {pendingCount > 0 && (isSuperAdmin || isProjectManager) && (
             <Stat value={String(pendingCount)} label="انتظار الاعتماد" warn />
           )}
 
@@ -880,7 +880,7 @@ function TaskCard({ task, who, isLast, isProjectManager }: {
 
       {/* Actions */}
       <div className="ms-auto flex shrink-0 items-center gap-1.5">
-        {isPending && isSuperAdmin && (
+        {isPending && isProjectManager && (
           <>
             <Pill label="اعتماد" variant="accept" onClick={() => run(() => approveTask(task.id))} />
             <Pill label="رفض"    variant="reject" onClick={() => run(() => rejectTask(task.id))} />

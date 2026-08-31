@@ -52,10 +52,11 @@ export default function ProjectDetail({
     currentUser.role === "MEMBER";
 
   // Filter tasks shown based on role:
-  // SUPER_ADMIN sees everything (including PENDING_APPROVAL and REJECTED)
-  // Others: hide PENDING_APPROVAL tasks they didn't add; show REJECTED dimmed
+  // SUPER_ADMIN and the project's own manager see everything, including
+  // PENDING_APPROVAL and REJECTED — the manager needs to see what they're
+  // approving. Everyone else: hide PENDING_APPROVAL tasks they didn't add.
   const visibleTasks =
-    currentUser.role === "SUPER_ADMIN"
+    currentUser.role === "SUPER_ADMIN" || isProjectManager
       ? project.tasks
       : project.tasks.filter(
           (t) =>
@@ -107,8 +108,8 @@ export default function ProjectDetail({
         <div className="mt-[30px] mb-1.5 flex items-center gap-2">
           <SectionLabel>المهام</SectionLabel>
 
-          {/* Pending badge for super-admin */}
-          {pendingCount > 0 && currentUser.role === "SUPER_ADMIN" && (
+          {/* Pending badge for whoever can act on it */}
+          {pendingCount > 0 && (currentUser.role === "SUPER_ADMIN" || isProjectManager) && (
             <span className="rounded-full bg-gold-100 border border-gold-600/30 px-2 py-0.5 text-[11px] font-medium text-gold-800">
               {pendingCount} في انتظار الاعتماد
             </span>

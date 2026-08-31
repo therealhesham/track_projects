@@ -285,11 +285,11 @@ export async function addTask(input: {
 
 
 /**
- * Super-admin approves a pending task → ACTIVE.
+ * The project's manager approves a pending task → ACTIVE.
  */
 export async function approveTask(taskId: string): Promise<TaskActionResult> {
-  const { viewer, task } = await viewerOnTask(taskId);
-  if (!canApproveTask(viewer)) return { ok: false, error: DENIED };
+  const { viewer, task, membership } = await viewerOnTask(taskId);
+  if (!canApproveTask(membership)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
   if (task.approvalStatus !== "PENDING_APPROVAL")
     return { ok: false, error: "المهمة ليست في انتظار الاعتماد" };
@@ -313,11 +313,11 @@ export async function approveTask(taskId: string): Promise<TaskActionResult> {
 }
 
 /**
- * Super-admin rejects a pending task → REJECTED.
+ * The project's manager rejects a pending task → REJECTED.
  */
 export async function rejectTask(taskId: string): Promise<TaskActionResult> {
-  const { viewer, task } = await viewerOnTask(taskId);
-  if (!canApproveTask(viewer)) return { ok: false, error: DENIED };
+  const { viewer, task, membership } = await viewerOnTask(taskId);
+  if (!canApproveTask(membership)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
   if (task.approvalStatus !== "PENDING_APPROVAL")
     return { ok: false, error: "المهمة ليست في انتظار الاعتماد" };
