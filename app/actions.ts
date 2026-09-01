@@ -10,6 +10,7 @@ import {
   sendCompletionReviewEmail,
   sendMemberInviteEmail,
   sendNewUserWelcomeEmail,
+  sendTaskAssignedEmail,
 } from "@/lib/email";
 import {
   canAddTask,
@@ -278,6 +279,36 @@ export async function addTask(input: {
     },
   });
 
+  // Notify the assignee — best-effort, never blocks the action.
+  if (input.assigneeId) {
+    try {
+      const [project, assignee] = await Promise.all([
+        prisma.project.findUnique({
+          where: { id: input.projectId },
+          select: { name: true },
+        }),
+        prisma.user.findUnique({
+          where: { id: input.assigneeId },
+          select: { name: true, email: true },
+        }),
+      ]);
+      if (project && assignee) {
+        await sendTaskAssignedEmail({
+          to: assignee.email,
+          assigneeName: assignee.name,
+          taskTitle: title,
+          projectName: project.name,
+          projectId: input.projectId,
+          assignedByName: viewer.name,
+          startDate: input.startDate ?? null,
+          dueDate: input.dueDate ?? null,
+        });
+      }
+    } catch (err) {
+      console.error("[email] sendTaskAssignedEmail failed:", err);
+    }
+  }
+
   revalidatePath("/");
   revalidatePath(`/projects/${input.projectId}`);
   return { ok: true };
@@ -319,6 +350,38 @@ export async function updateTask(input: {
       message: `تم تعديل المهمة: "${title}"`,
     },
   });
+
+  // Notify the new assignee when the assignment changes — best-effort.
+  const assigneeChanged =
+    input.assigneeId && input.assigneeId !== task.assigneeId;
+  if (assigneeChanged) {
+    try {
+      const [project, assignee] = await Promise.all([
+        prisma.project.findUnique({
+          where: { id: task.projectId },
+          select: { name: true },
+        }),
+        prisma.user.findUnique({
+          where: { id: input.assigneeId! },
+          select: { name: true, email: true },
+        }),
+      ]);
+      if (project && assignee) {
+        await sendTaskAssignedEmail({
+          to: assignee.email,
+          assigneeName: assignee.name,
+          taskTitle: title,
+          projectName: project.name,
+          projectId: task.projectId,
+          assignedByName: viewer.name,
+          startDate: input.startDate ?? null,
+          dueDate: input.dueDate ?? null,
+        });
+      }
+    } catch (err) {
+      console.error("[email] sendTaskAssignedEmail (reassign) failed:", err);
+    }
+  }
 
   revalidatePath("/");
   revalidatePath(`/projects/${task.projectId}`);

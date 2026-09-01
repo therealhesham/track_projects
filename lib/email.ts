@@ -522,3 +522,77 @@ export async function sendManagerTaskDueSummaryEmail({
   await deliver(to, subject, html);
 }
 
+
+/**
+ * Notify an assignee that a task has been assigned (or reassigned) to them.
+ * Sent from addTask / updateTask whenever an assigneeId is present.
+ */
+export async function sendTaskAssignedEmail({
+  to,
+  assigneeName,
+  taskTitle,
+  projectName,
+  projectId,
+  assignedByName,
+  startDate,
+  dueDate,
+}: {
+  to: string;
+  assigneeName: string;
+  taskTitle: string;
+  projectName: string;
+  projectId: string;
+  assignedByName: string;
+  startDate?: string | null;
+  dueDate?: string | null;
+}) {
+  const dateRows = [
+    startDate
+      ? `<tr>
+          <td style="color:#64748b;font-size:13px;padding:4px 0;">تاريخ البداية:</td>
+          <td style="font-size:13px;font-weight:600;color:#0f172a;padding:4px 0;">${startDate}</td>
+         </tr>`
+      : "",
+    dueDate
+      ? `<tr>
+          <td style="color:#64748b;font-size:13px;padding:4px 0;">الموعد النهائي:</td>
+          <td style="font-size:13px;font-weight:600;color:#0f172a;padding:4px 0;">${dueDate}</td>
+         </tr>`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("");
+
+  const html = emailShell({
+    headerTitle: "مهمة جديدة مكلّف بها",
+    body: `
+              <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#12262d;">
+                مرحباً ${assigneeName}،
+              </p>
+              <p style="margin:0 0 24px;font-size:15px;color:#4a6068;line-height:1.7;">
+                قام <strong>${assignedByName}</strong> بتكليفك بمهمة جديدة في مشروع
+                <strong>"${projectName}"</strong>.
+              </p>
+
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px;">
+                <p style="margin:0 0 6px;font-size:12px;color:#64748b;">المهمة</p>
+                <p style="margin:0 0 16px;font-size:17px;font-weight:700;color:#00485c;">
+                  ${taskTitle}
+                </p>
+                ${dateRows ? `<table cellpadding="0" cellspacing="0" width="100%">${dateRows}</table>` : ""}
+              </div>
+
+              <p style="margin:0;font-size:13px;color:#8a9aa0;">
+                ستظهر المهمة في قائمتك فور اعتمادها من المدير.
+              </p>`,
+    ctaLabel: "فتح المشروع",
+    ctaLink: `${appOrigin()}/projects/${projectId}`,
+    footnote: "إذا كان هذا التكليف غير صحيح، يُرجى التواصل مع مدير المشروع.",
+  });
+
+  await deliver(
+    to,
+    `مهمة جديدة مكلّف بها: "${taskTitle}" — ${projectName}`,
+    html,
+  );
+}
