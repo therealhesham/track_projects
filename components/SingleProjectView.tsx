@@ -11,6 +11,7 @@ import {
   rejectCompletion,
   deleteTask,
   addTask,
+  updateTask,
   updateProjectDates,
   updateProjectDetails,
 } from "@/app/actions";
@@ -355,6 +356,7 @@ function ProjectPage({
                       who={task.assignee ?? project.owner}
                       isLast={i === visibleTasks.length - 1}
                       isProjectManager={isProjectManager}
+                      projectMembers={project.members}
                     />
                   ))}
                 </div>
@@ -761,16 +763,18 @@ function ProgressRing({ pct }: { pct: number }) {
 
 // ─── TaskCard ─────────────────────────────────────────────────────────────────
 
-function TaskCard({ task, who, isLast, isProjectManager }: {
+function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
   task: TaskView;
   who?: string | null;
   isLast: boolean;
   /** Whether the viewer manages this specific project (ProjectRole, not the account-wide role). */
   isProjectManager: boolean;
+  projectMembers: import("@/lib/view").MemberView[];
 }) {
   const { currentUser } = useRole();
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [note, setNote] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
@@ -920,6 +924,18 @@ function TaskCard({ task, who, isLast, isProjectManager }: {
         {(isSuperAdmin || isProjectManager) && !isDone && (
           <button
             type="button"
+            title="تعديل المهمة"
+            onClick={() => setEditOpen(true)}
+            aria-label={`تعديل: ${task.title}`}
+            className="ms-1 rounded p-1 text-[12px] text-ink/15 opacity-0 transition-all hover:text-accent group-hover:opacity-100"
+          >
+            <Edit3 className="h-3.5 w-3.5" />
+          </button>
+        )}
+
+        {(isSuperAdmin || isProjectManager) && !isDone && (
+          <button
+            type="button"
             title="حذف المهمة"
             onClick={() => run(() => deleteTask(task.id))}
             aria-label={`حذف: ${task.title}`}
@@ -929,6 +945,15 @@ function TaskCard({ task, who, isLast, isProjectManager }: {
           </button>
         )}
       </div>
+
+      {/* Edit Task Modal */}
+      {editOpen && (
+        <EditTaskModal
+          task={task}
+          projectMembers={projectMembers}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1087,6 +1112,152 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
             className="rounded-xl bg-accent px-5 py-2 text-[14px] font-semibold text-white transition hover:bg-accent-600 hover:shadow-sm disabled:opacity-40"
           >
             {pending ? "جارٍ الإضافة…" : "إضافة المهمة"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── EditTaskModal ────────────────────────────────────────────────────────────
+
+function EditTaskModal({
+  task,
+  projectMembers,
+  onClose,
+}: {
+  task: TaskView;
+  projectMembers: import("@/lib/view").MemberView[];
+  onClose: () => void;
+}) {
+  const [title, setTitle]           = useState(task.title);
+  const [assigneeId, setAssigneeId] = useState(task.assigneeId ?? "");
+  const [startDate, setStartDate]   = useState(task.startDate ?? "");
+  const [dueDate, setDueDate]       = useState(task.dueDate ?? "");
+  const [error, setError]           = useState<string | null>(null);
+  const [pending, startTransition]  = useTransition();
+
+  const submit = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await updateTask({
+        taskId: task.id,
+        title,
+        assigneeId: assigneeId || null,
+        startDate: startDate || null,
+        dueDate: dueDate || null,
+      });
+      if (!result.ok) { setError(result.error); return; }
+      onClose();
+    });
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/20 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-[440px] overflow-hidden rounded-2xl border border-ink/10 bg-paper shadow-lg">
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-ink/8 px-6 pt-6 pb-4">
+          <div className="flex items-center gap-2">
+            <Edit3 className="h-5 w-5 text-accent" />
+            <h2 className="text-[17px] font-semibold text-ink">تعديل المهمة</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-ink/35 transition hover:bg-ink/6 hover:text-ink"
+            aria-label="إغلاق"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex flex-col gap-4 px-6 py-5">
+
+          {/* Title */}
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-medium text-ink/50">
+              عنوان المهمة <span className="text-red-400">*</span>
+            </span>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !pending) submit(); }}
+              autoFocus
+              className="w-full rounded-xl border border-ink/15 bg-paper px-4 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-ink/25 focus:border-accent focus:ring-2 focus:ring-accent/12"
+            />
+          </label>
+
+          {/* Assignee */}
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-medium text-ink/50">العضو المكلف</span>
+            <select
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
+              className="w-full rounded-xl border border-ink/15 bg-paper px-4 py-2.5 text-[14px] text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/12"
+            >
+              <option value="">— بدون تكليف —</option>
+              {projectMembers.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12px] font-medium text-ink/50">تاريخ البداية</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-xl border border-ink/15 bg-paper px-3.5 py-2.5 text-[13px] text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/12"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12px] font-medium text-ink/50">تاريخ النهاية / الموعد</span>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full rounded-xl border border-ink/15 bg-paper px-3.5 py-2.5 text-[13px] text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/12"
+              />
+            </label>
+          </div>
+
+          {error && (
+            <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-[12px] text-red-600">
+              {error}
+            </p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2.5 border-t border-ink/8 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/55 transition hover:bg-ink/5"
+          >
+            إلغاء
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={pending || !title.trim()}
+            className="rounded-xl bg-accent px-5 py-2 text-[14px] font-semibold text-white transition hover:bg-accent-600 hover:shadow-sm disabled:opacity-40"
+          >
+            {pending ? "جارٍ الحفظ…" : "حفظ التعديلات"}
           </button>
         </div>
       </div>

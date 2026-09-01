@@ -283,6 +283,47 @@ export async function addTask(input: {
   return { ok: true };
 }
 
+/**
+ * Edit an existing task's metadata (title, dates, assignee).
+ * Only the project's manager or a super admin may do this.
+ */
+export async function updateTask(input: {
+  taskId: string;
+  title: string;
+  assigneeId?: string | null;
+  startDate?: string | null;
+  dueDate?: string | null;
+}): Promise<TaskActionResult> {
+  const { viewer, task, membership } = await viewerOnTask(input.taskId);
+  if (!task) return { ok: false, error: "المهمة غير موجودة" };
+  if (!canDeleteTask(viewer, membership))
+    return { ok: false, error: DENIED };
+
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "عنوان المهمة مطلوب" };
+
+  await prisma.task.update({
+    where: { id: input.taskId },
+    data: {
+      title,
+      assigneeId: input.assigneeId ?? null,
+      startDate: input.startDate ? new Date(input.startDate) : null,
+      dueDate: input.dueDate ? new Date(input.dueDate) : null,
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      projectId: task.projectId,
+      userId: viewer.id,
+      message: `تم تعديل المهمة: "${title}"`,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/projects/${task.projectId}`);
+  return { ok: true };
+}
 
 /**
  * The project's manager approves a pending task → ACTIVE.
