@@ -106,6 +106,13 @@ model Project {
   /// Optional link to GitHub repository for commits listing (e.g. "https://github.com/owner/repo")
   githubUrl String?
 
+  /// Manually stated completion, 0–100. Null is the normal case: the percentage
+  /// is then counted from the tasks, which is the honest number. Set it only
+  /// where the tasks cannot tell the truth — imported projects whose history was
+  /// never entered as tasks, chiefly. Once real tasks exist, clearing this hands
+  /// the figure back to the count.
+  progressPct Int?
+
   /// The single accountable owner shown as "المسؤول" in the projects table.
   /// Held alongside ProjectMember (not instead of it): this is the one name on
   /// the row, while memberships carry the full team and their per-project roles.

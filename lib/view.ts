@@ -137,6 +137,15 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
   const doneCount = tasks.filter((t) => t.done).length;
   const total = tasks.filter((t) => t.approvalStatus !== "REJECTED").length;
 
+  // Counted from the tasks unless the project states a figure of its own. See
+  // `Project.progressPct`: imported work whose history was never entered as
+  // tasks would otherwise read 0%, which is worse than wrong — it is plausible.
+  const countedPct = total ? Math.round((doneCount / total) * 100) : 0;
+  const pct =
+    row.progressPct === null
+      ? countedPct
+      : Math.min(100, Math.max(0, row.progressPct));
+
   return {
     id: row.id,
     name: row.name,
@@ -163,7 +172,7 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
       department: m.user.department,
       projectRole: m.role as "MANAGER" | "MEMBER",
     })),
-    pct: total ? Math.round((doneCount / total) * 100) : 0,
+    pct,
     doneCount,
     total,
   };
