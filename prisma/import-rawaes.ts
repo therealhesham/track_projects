@@ -10,8 +10,8 @@
  *
  * Nothing is deleted, and no task is created: the source table has no task
  * breakdown, only a percentage per project. That percentage goes to
- * `progressPct`; clear it once a project's real tasks are entered and the
- * figure goes back to being counted.
+ * `progressPct`, which stands in only while a project has no tasks of its own —
+ * adding the first one hands the figure back to the count automatically.
  *
  * Two owners already had accounts (عمر, هشام) and are matched by email. The
  * other two are created without a password — they cannot sign in until one is

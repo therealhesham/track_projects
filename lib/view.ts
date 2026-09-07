@@ -137,14 +137,16 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
   const doneCount = tasks.filter((t) => t.done).length;
   const total = tasks.filter((t) => t.approvalStatus !== "REJECTED").length;
 
-  // Counted from the tasks unless the project states a figure of its own. See
-  // `Project.progressPct`: imported work whose history was never entered as
-  // tasks would otherwise read 0%, which is worse than wrong — it is plausible.
-  const countedPct = total ? Math.round((doneCount / total) * 100) : 0;
+  // The tasks are the real answer, and they win the moment there are any. A
+  // project with none would read 0%, which is worse than wrong — it is
+  // plausible — so there `Project.progressPct` stands in, carrying the figure
+  // for imported work whose history was never entered as tasks. Entering the
+  // first task hands the percentage back to the count on its own; the stated
+  // figure never has to be cleared by hand, and never masks a real tally.
   const pct =
-    row.progressPct === null
-      ? countedPct
-      : Math.min(100, Math.max(0, row.progressPct));
+    total > 0
+      ? Math.round((doneCount / total) * 100)
+      : Math.min(100, Math.max(0, row.progressPct ?? 0));
 
   return {
     id: row.id,
