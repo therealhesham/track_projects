@@ -1,4 +1,5 @@
-import type { ProjectStatus, TaskApprovalStatus, TaskStage } from "@prisma/client";
+import type { ProjectStatus, TaskApprovalStatus, TaskStage, UserRole } from "@prisma/client";
+import { ROLE_LABEL } from "./permissions";
 
 /**
  * The database stores stable English identifiers; every Arabic string the user
@@ -82,3 +83,35 @@ export const APPROVAL_STATUS_TAG: Record<TaskApprovalStatus, string> = {
   DONE: "bg-mute-100 text-mute-800 border border-ink/10",
   REJECTED: "bg-red-50 text-red-700 border border-red-200",
 };
+
+// ── Account roles ───────────────────────────────────────────────────────────
+// The Arabic wording itself lives beside the rules it names, in lib/permissions
+// (ROLE_LABEL); what belongs here is how that vocabulary is *presented*.
+
+/** Tailwind classes for the account-role chip on the users page. */
+export const USER_ROLE_TAG: Record<UserRole, string> = {
+  SUPER_ADMIN: "bg-gold-100 text-gold-800 border border-gold-600/30",
+  MANAGER: "bg-accent-100 text-accent-800 border border-accent-200",
+  MEMBER: "bg-mute-100 text-mute-800 border border-ink/10",
+};
+
+/** The hairline that tints the top edge of a user card, by account role. */
+export const USER_ROLE_RULE: Record<UserRole, string> = {
+  SUPER_ADMIN: "bg-gold",
+  MANAGER: "bg-accent",
+  MEMBER: "bg-ink/15",
+};
+
+export type UserRoleFilterKey = "ALL" | UserRole;
+
+/** Filter strip above the users grid. Annotated rather than `as const` —
+ *  the labels come from ROLE_LABEL, so the keys are what needs pinning down. */
+export const USER_ROLE_FILTERS: readonly {
+  key: UserRoleFilterKey;
+  label: string;
+}[] = [
+  { key: "ALL", label: "الكل" },
+  { key: "SUPER_ADMIN", label: ROLE_LABEL.SUPER_ADMIN },
+  { key: "MANAGER", label: ROLE_LABEL.MANAGER },
+  { key: "MEMBER", label: ROLE_LABEL.MEMBER },
+];

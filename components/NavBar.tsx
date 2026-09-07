@@ -46,6 +46,16 @@ export default function NavBar({
             <span aria-hidden className="h-7 w-px bg-ink/12" />
 
             {isSuperAdmin && (
+              <Link
+                href="/users"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-surface px-3 py-1.5 text-[13px] font-medium text-ink transition hover:bg-paper hover:text-accent shadow-sm"
+              >
+                <Shield className="h-3.5 w-3.5 text-accent" />
+                المستخدمون
+              </Link>
+            )}
+
+            {isSuperAdmin && (
               <button
                 type="button"
                 onClick={() => setCreateUserOpen(true)}

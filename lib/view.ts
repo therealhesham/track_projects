@@ -1,6 +1,14 @@
-import type { Prisma, ProjectStatus, TaskApprovalStatus, TaskStage } from "@prisma/client";
-import { formatShortDate, ymd } from "./calendar";
+import type {
+  Prisma,
+  ProjectRole,
+  ProjectStatus,
+  TaskApprovalStatus,
+  TaskStage,
+  UserRole,
+} from "@prisma/client";
+import { formatLongDate, formatShortDate, ymd } from "./calendar";
 import { APPROVAL_STATUS_LABEL, STATUS_LABEL } from "./labels";
+import { ROLE_LABEL } from "./permissions";
 
 /**
  * The database rows are shaped for storage; the screens want Arabic labels,
@@ -263,4 +271,178 @@ export function movementsOf(
     }
   }
   return out;
+}
+
+// ── Users ───────────────────────────────────────────────────────────────────
+
+/**
+ * A `select`, deliberately, where the rest of this module uses `include`:
+ * `include` would carry every scalar on the row — `passwordHash` among them —
+ * into props that reach the browser. Listing the fields keeps the hash where it
+ * belongs.
+ */
+export const userCardSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  department: true,
+  isActive: true,
+  createdAt: true,
+  ownedProjects: {
+    select: { id: true, name: true, kicker: true, status: true },
+  },
+  memberships: {
+    select: {
+      role: true,
+      project: { select: { id: true, name: true, kicker: true, status: true } },
+    },
+    orderBy: { joinedAt: "asc" },
+  },
+  // Read for the per-project tallies below, so the counting happens here rather
+  // than in a query per user per project.
+  assignedTasks: {
+    select: {
+      approvalStatus: true,
+      project: { select: { id: true, name: true, kicker: true, status: true } },
+    },
+  },
+} satisfies Prisma.UserSelect;
+
+export type UserCardRow = Prisma.UserGetPayload<{
+  select: typeof userCardSelect;
+}>;
+
+/** One project as it appears under a person: how they are attached, and what
+ *  of it is theirs. */
+export type UserProjectView = {
+  id: string;
+  name: string;
+  kicker: string | null;
+  status: ProjectStatus;
+  statusLabel: string;
+  /** The accountable owner — "المسؤول" on the projects table. */
+  isOwner: boolean;
+  /** Their role on the membership, or null if they only carry tasks here. */
+  projectRole: ProjectRole | null;
+  relationLabel: string;
+  /** Tasks assigned to *this* person on this project, rejected ones excluded. */
+  taskTotal: number;
+  taskDone: number;
+  pct: number;
+};
+
+export type UserCardView = {
+  id: string;
+  name: string;
+  /** Up to two letters for the avatar square. */
+  initials: string;
+  email: string;
+  role: UserRole;
+  roleLabel: string;
+  department: string | null;
+  isActive: boolean;
+  joined: string;
+  projects: UserProjectView[];
+  /** Across every project: what this person carries, and how much is done. */
+  taskTotal: number;
+  taskDone: number;
+  pct: number;
+};
+
+/** Owner first, then the projects they run, then the rest. */
+const RELATION_RANK = { owner: 0, MANAGER: 1, MEMBER: 2, none: 3 } as const;
+
+function relationOf(p: UserProjectView) {
+  if (p.isOwner) return "owner" as const;
+  return p.projectRole ?? ("none" as const);
+}
+
+const RELATION_LABEL: Record<keyof typeof RELATION_RANK, string> = {
+  owner: "المسؤول",
+  MANAGER: "مدير المشروع",
+  MEMBER: "عضو",
+  none: "مكلَّف بمهام",
+};
+
+export function toUserCardView(row: UserCardRow): UserCardView {
+  // A person reaches a project three ways — owning it, being a member of it, or
+  // merely carrying a task on it — and the three overlap. Collect them into one
+  // entry per project so nothing is listed twice.
+  const byProject = new Map<string, UserProjectView>();
+
+  const entryFor = (p: {
+    id: string;
+    name: string;
+    kicker: string | null;
+    status: ProjectStatus;
+  }) => {
+    let entry = byProject.get(p.id);
+    if (!entry) {
+      entry = {
+        id: p.id,
+        name: p.name,
+        kicker: p.kicker,
+        status: p.status,
+        statusLabel: STATUS_LABEL[p.status],
+        isOwner: false,
+        projectRole: null,
+        relationLabel: "",
+        taskTotal: 0,
+        taskDone: 0,
+        pct: 0,
+      };
+      byProject.set(p.id, entry);
+    }
+    return entry;
+  };
+
+  for (const p of row.ownedProjects) entryFor(p).isOwner = true;
+  for (const m of row.memberships) entryFor(m.project).projectRole = m.role;
+
+  for (const t of row.assignedTasks) {
+    const entry = entryFor(t.project);
+    // Same rule as toProjectView: a turned-away task is not work anyone owes.
+    if (t.approvalStatus === "REJECTED") continue;
+    entry.taskTotal += 1;
+    if (t.approvalStatus === "DONE") entry.taskDone += 1;
+  }
+
+  const projects = [...byProject.values()]
+    .map((p) => ({
+      ...p,
+      relationLabel: RELATION_LABEL[relationOf(p)],
+      pct: p.taskTotal ? Math.round((p.taskDone / p.taskTotal) * 100) : 0,
+    }))
+    .sort(
+      (a, b) =>
+        RELATION_RANK[relationOf(a)] - RELATION_RANK[relationOf(b)] ||
+        a.name.localeCompare(b.name, "ar"),
+    );
+
+  const taskTotal = projects.reduce((n, p) => n + p.taskTotal, 0);
+  const taskDone = projects.reduce((n, p) => n + p.taskDone, 0);
+
+  return {
+    id: row.id,
+    name: row.name,
+    initials: row.name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => [...word][0])
+      .join("")
+      // A no-op on Arabic, which has no case; Latin names read better in caps.
+      .toUpperCase(),
+    email: row.email,
+    role: row.role,
+    roleLabel: ROLE_LABEL[row.role],
+    department: row.department,
+    isActive: row.isActive,
+    joined: formatLongDate(ymd(row.createdAt)),
+    projects,
+    taskTotal,
+    taskDone,
+    pct: taskTotal ? Math.round((taskDone / taskTotal) * 100) : 0,
+  };
 }

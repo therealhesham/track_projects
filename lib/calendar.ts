@@ -72,6 +72,13 @@ export function formatShortDate(day: string | null): string {
   return `${d} ${AR_MONTHS[m - 1]}`;
 }
 
+/** "١٢ سبتمبر ٢٠٢٥" — the same, for places where the year carries meaning. */
+export function formatLongDate(day: string | null): string {
+  if (!day) return "بلا تاريخ";
+  const [y, m, d] = day.split("-").map(Number);
+  return `${d} ${AR_MONTHS[m - 1]} ${y}`;
+}
+
 /** "٢٤ أغسطس · الأحد" — the calendar side-panel heading. */
 export function formatDayTitle(day: string): string {
   const [y, m, d] = day.split("-").map(Number);
