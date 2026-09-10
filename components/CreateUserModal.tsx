@@ -66,7 +66,7 @@ export default function CreateUserModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-ink/35 transition hover:bg-ink/6 hover:text-ink"
+            className="rounded-lg p-1.5 text-ink/60 transition hover:bg-ink/6 hover:text-ink"
             aria-label="إغلاق"
           >
             <X className="h-4 w-4" />
@@ -76,7 +76,7 @@ export default function CreateUserModal({
         {/* Body */}
         <div className="flex flex-col gap-4 px-6 py-5">
           <label className="flex flex-col gap-1">
-            <span className="text-[12px] font-medium text-ink/50">
+            <span className="text-[13px] font-medium text-ink/70">
               الاسم الكامل <span className="text-red-400">*</span>
             </span>
             <div className="relative">
@@ -92,7 +92,7 @@ export default function CreateUserModal({
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-[12px] font-medium text-ink/50">
+            <span className="text-[13px] font-medium text-ink/70">
               البريد الإلكتروني <span className="text-red-400">*</span>
             </span>
             <input
@@ -106,7 +106,7 @@ export default function CreateUserModal({
 
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-[12px] font-medium text-ink/50">
+              <span className="text-[13px] font-medium text-ink/70">
                 دور المستخدم
               </span>
               <select
@@ -123,7 +123,7 @@ export default function CreateUserModal({
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-[12px] font-medium text-ink/50">
+              <span className="text-[13px] font-medium text-ink/70">
                 القسم (اختياري)
               </span>
               <input
@@ -137,7 +137,7 @@ export default function CreateUserModal({
           </div>
 
           <label className="flex flex-col gap-1">
-            <span className="text-[12px] font-medium text-ink/50">
+            <span className="text-[13px] font-medium text-ink/70">
               كلمة المرور (اختياري - الافتراضي: 123456789)
             </span>
             <input
@@ -150,13 +150,13 @@ export default function CreateUserModal({
           </label>
 
           {error && (
-            <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-[12px] text-red-600">
+            <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-[13px] text-red-600">
               {error}
             </p>
           )}
 
           {successMsg && (
-            <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-[12px] text-green-700 font-medium">
+            <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-[13px] text-green-700 font-medium">
               {successMsg}
             </p>
           )}
@@ -167,7 +167,7 @@ export default function CreateUserModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/55 transition hover:bg-ink/5"
+            className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/75 transition hover:bg-ink/5"
           >
             إلغاء
           </button>

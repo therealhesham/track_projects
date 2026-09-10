@@ -150,7 +150,7 @@ export default function TeamPanel({
               أعضاء فريق المشروع
             </h3>
           </div>
-          <p className="mt-0.5 text-[13px] text-ink/45">
+          <p className="mt-0.5 text-[13px] text-ink/70">
             الأعضاء المسجلون والمسؤولون في هذا المشروع ({project.members.length} عضو)
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function TeamPanel({
 
       {/* Members List */}
       {project.members.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-ink/15 py-14 text-center text-[14px] text-ink/35">
+        <div className="rounded-xl border border-dashed border-ink/15 py-14 text-center text-[14px] text-ink/60">
           لا يوجد أعضاء في هذا المشروع بعد.
         </div>
       ) : (
@@ -190,18 +190,18 @@ export default function TeamPanel({
                         {m.name}
                       </span>
                       {m.projectRole === "MANAGER" ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[12px] font-medium text-accent">
                           <Shield className="h-3 w-3" />
                           مدير المشروع
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-ink/10 bg-ink/6 px-2 py-0.5 text-[11px] font-medium text-ink/60">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-ink/10 bg-ink/6 px-2 py-0.5 text-[12px] font-medium text-ink/80">
                           <User className="h-3 w-3" />
                           عضو
                         </span>
                       )}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-3 text-[12px] text-ink/40">
+                    <div className="mt-0.5 flex items-center gap-3 text-[13px] text-ink/65">
                       <span className="inline-flex items-center gap-1">
                         <Mail className="h-3 w-3" />
                         {m.email}
@@ -227,7 +227,7 @@ export default function TeamPanel({
                         )
                       }
                       disabled={pending}
-                      className="rounded-lg border border-ink/15 bg-paper px-2.5 py-1 text-[12px] text-ink outline-none transition focus:border-accent"
+                      className="rounded-lg border border-ink/15 bg-paper px-2.5 py-1 text-[13px] text-ink outline-none transition focus:border-accent"
                     >
                       <option value="MEMBER">عضو (MEMBER)</option>
                       <option value="MANAGER">مدير (MANAGER)</option>
@@ -239,7 +239,7 @@ export default function TeamPanel({
                       type="button"
                       onClick={() => handleRemoveMember(m.userId, m.name)}
                       disabled={pending}
-                      className="inline-flex items-center gap-1 rounded-lg p-2 text-[12px] font-medium text-red-500 opacity-80 transition hover:bg-red-50 hover:opacity-100 disabled:opacity-40"
+                      className="inline-flex items-center gap-1 rounded-lg p-2 text-[13px] font-medium text-red-500 opacity-80 transition hover:bg-red-50 hover:opacity-100 disabled:opacity-40"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       إزالة
@@ -274,7 +274,7 @@ export default function TeamPanel({
               <button
                 type="button"
                 onClick={() => setAddModalOpen(false)}
-                className="rounded-lg p-1.5 text-ink/35 transition hover:bg-ink/5 hover:text-ink"
+                className="rounded-lg p-1.5 text-ink/60 transition hover:bg-ink/5 hover:text-ink"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -290,7 +290,7 @@ export default function TeamPanel({
                 }}
                 className={`relative px-4 py-2.5 text-[13px] font-medium transition ${modalTab === "existing"
                     ? "text-accent"
-                    : "text-ink/50 hover:text-ink"
+                    : "text-ink/70 hover:text-ink"
                   }`}
               >
                 اختيار مستخدم موجود
@@ -306,7 +306,7 @@ export default function TeamPanel({
                 }}
                 className={`relative px-4 py-2.5 text-[13px] font-medium transition ${modalTab === "new"
                     ? "text-accent"
-                    : "text-ink/50 hover:text-ink"
+                    : "text-ink/70 hover:text-ink"
                   }`}
               >
                 إنشاء مستخدم جديد للنظام
@@ -320,7 +320,7 @@ export default function TeamPanel({
             {modalTab === "existing" ? (
               <div className="flex flex-col gap-4 px-6 py-5">
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-[12px] font-medium text-ink/50">
+                  <span className="text-[13px] font-medium text-ink/70">
                     اختر العضو <span className="text-red-400">*</span>
                   </span>
                   <select
@@ -338,7 +338,7 @@ export default function TeamPanel({
                 </label>
 
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-[12px] font-medium text-ink/50">
+                  <span className="text-[13px] font-medium text-ink/70">
                     الدور في هذا المشروع
                   </span>
                   <select
@@ -353,7 +353,7 @@ export default function TeamPanel({
                   </select>
                 </label>
 
-                <div className="flex items-start gap-2.5 rounded-xl border border-accent/15 bg-accent/6 px-4 py-3 text-[12px] leading-relaxed text-accent">
+                <div className="flex items-start gap-2.5 rounded-xl border border-accent/15 bg-accent/6 px-4 py-3 text-[13px] leading-relaxed text-accent">
                   <Mail className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
                     <strong>إشعار بريدي:</strong> سيتم إرسال دعوة بريدية تلقائياً لبريد العضو فور إضافته للمشروع.
@@ -361,7 +361,7 @@ export default function TeamPanel({
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] text-red-600">
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[13px] text-red-600">
                     {error}
                   </div>
                 )}
@@ -369,7 +369,7 @@ export default function TeamPanel({
             ) : (
               <div className="flex flex-col gap-3.5 px-6 py-5">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-ink/50">
+                  <span className="text-[13px] font-medium text-ink/70">
                     الاسم الكامل <span className="text-red-400">*</span>
                   </span>
                   <input
@@ -382,7 +382,7 @@ export default function TeamPanel({
                 </label>
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-ink/50">
+                  <span className="text-[13px] font-medium text-ink/70">
                     البريد الإلكتروني <span className="text-red-400">*</span>
                   </span>
                   <input
@@ -396,7 +396,7 @@ export default function TeamPanel({
 
                 <div className="grid grid-cols-2 gap-3">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[12px] font-medium text-ink/50">
+                    <span className="text-[13px] font-medium text-ink/70">
                       دور النظام
                     </span>
                     <select
@@ -415,7 +415,7 @@ export default function TeamPanel({
                   </label>
 
                   <label className="flex flex-col gap-1">
-                    <span className="text-[12px] font-medium text-ink/50">
+                    <span className="text-[13px] font-medium text-ink/70">
                       الدور في هذا المشروع
                     </span>
                     <select
@@ -431,13 +431,13 @@ export default function TeamPanel({
                   </label>
                 </div>
 
-                <p className="-mt-1 text-[11px] leading-relaxed text-ink/40">
+                <p className="-mt-1 text-[12px] leading-relaxed text-ink/65">
                   دور النظام يحدد صلاحياته العامة (إنشاء المشاريع وإدارة الحسابات)،
                   ودور المشروع يحدد صلاحياته داخل هذا المشروع فقط. الاثنان مستقلان.
                 </p>
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-ink/50">
+                  <span className="text-[13px] font-medium text-ink/70">
                     القسم (اختياري)
                   </span>
                   <input
@@ -450,7 +450,7 @@ export default function TeamPanel({
                 </label>
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-ink/50">
+                  <span className="text-[13px] font-medium text-ink/70">
                     كلمة المرور الأولية (افتراضي: 123456789)
                   </span>
                   <div className="relative">
@@ -465,7 +465,7 @@ export default function TeamPanel({
                 </label>
 
                 {error && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] text-red-600">
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[13px] text-red-600">
                     {error}
                   </div>
                 )}
@@ -477,7 +477,7 @@ export default function TeamPanel({
               <button
                 type="button"
                 onClick={() => setAddModalOpen(false)}
-                className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/60 transition hover:bg-ink/5"
+                className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/80 transition hover:bg-ink/5"
               >
                 إلغاء
               </button>

@@ -80,13 +80,15 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  memberships     ProjectMember[]
-  ownedProjects   Project[]       @relation("ProjectOwner")
-  assignedTasks   Task[]          @relation("TaskAssignee")
-  addedTasks      Task[]          @relation("TaskAddedBy")
-  dailyTasks      DailyTask[]     @relation("DailyTaskOwner")
-  addedDailyTasks DailyTask[]     @relation("DailyTaskAddedBy")
-  activity        ActivityLog[]
+  memberships      ProjectMember[]
+  ownedProjects     Project[]      @relation("ProjectOwner")
+  assignedTasks     Task[]         @relation("TaskAssignee")
+  addedTasks        Task[]         @relation("TaskAddedBy")
+  assignedSubtasks  Subtask[]      @relation("SubtaskAssignee")
+  addedSubtasks     Subtask[]      @relation("SubtaskAddedBy")
+  dailyTasks        DailyTask[]    @relation("DailyTaskOwner")
+  addedDailyTasks   DailyTask[]    @relation("DailyTaskAddedBy")
+  activity          ActivityLog[]
 
   @@map("users")
 }
@@ -191,9 +193,10 @@ model Task {
   updatedAt DateTime @updatedAt
 
 
-  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  addedBy  User?   @relation("TaskAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee User?     @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  addedBy  User?     @relation("TaskAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  subtasks Subtask[]
 
   @@index([projectId, stage, position])
   @@index([assigneeId])
@@ -202,6 +205,66 @@ model Task {
   @@index([startedAt])
   @@index([completedAt])
   @@map("tasks")
+}
+
+/// One step of a `Task`, carrying the same approval lifecycle as its parent.
+///
+/// A separate table rather than a `parentId` on `Task`, for the reason spelled
+/// out on `DailyTask` below: every percentage, tally and calendar entry in this
+/// schema reads `Task` rows directly — `toProjectView`, `userCardSelect`,
+/// `movementsOf`, the board columns, the due-date reminders. A self-relation
+/// would silently fold steps into all of them as if they were tasks in their own
+/// right, and each one would have to be taught to filter `parentId: null` by
+/// hand. A step is a part of a task, not another task, so it gets its own table
+/// and the counts stay honest.
+///
+/// The lifecycle is the same `TaskApprovalStatus` and the same gates as `Task`
+/// (see lib/permissions), with one addition that runs the other way: a parent
+/// task cannot be sent for completion while any of its steps is still open.
+model Subtask {
+  id     String @id @default(cuid())
+  taskId String
+  title  String
+
+  /// Manual ordering within the parent task.
+  position Int @default(0)
+
+  /// Who carries this step. Null means it falls to whoever holds the parent.
+  assigneeId String?
+
+  /// Who wrote it down.
+  addedById String?
+
+  approvalStatus TaskApprovalStatus @default(PENDING_APPROVAL)
+
+  /// Optional note from the assignee when they request completion.
+  completionNote String? @db.Text
+
+  completionRequestedAt DateTime?
+  managerApprovedAt     DateTime?
+
+  /// Set when the step is admitted; cleared if it is sent back.
+  startedAt DateTime?
+  /// Set only once the completion is approved.
+  completedAt DateTime?
+
+  /// Optional deadline for this step alone. There is no `startDate` to match
+  /// `Task`: the parent already carries the planned window, and a step needs at
+  /// most a date it is owed by.
+  dueDate DateTime? @db.Date
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task     Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assignee User? @relation("SubtaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  addedBy  User? @relation("SubtaskAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+
+  @@index([taskId, position])
+  @@index([assigneeId])
+  @@index([addedById])
+  @@index([approvalStatus])
+  @@map("subtasks")
 }
 
 /// Day-to-day work that hangs off a person rather than a project — the errands

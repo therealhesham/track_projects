@@ -140,7 +140,7 @@ export default function CreateProjectForm({
           <div className="flex items-center gap-4">
             <Link
               href="/"
-              className="flex items-center gap-1.5 rounded-md border border-ink/15 bg-white px-3 py-1.5 text-[13px] font-medium text-ink/70 hover:bg-ink/5 transition-colors"
+              className="flex items-center gap-1.5 rounded-md border border-ink/15 bg-white px-3 py-1.5 text-[13px] font-medium text-ink/85 hover:bg-ink/5 transition-colors"
             >
               <span>→</span> الرجوع للمشاريع
             </Link>
@@ -148,7 +148,7 @@ export default function CreateProjectForm({
               <h1 className="text-2xl font-semibold leading-tight">
                 إنشاء مشروع جديد
               </h1>
-              <p className="text-[13px] text-ink/55">
+              <p className="text-[13px] text-ink/75">
                 إعداد بيانات المشروع، اختيار أعضاء الفريق، وتوزيع المهام المبدئية
               </p>
             </div>
@@ -169,7 +169,7 @@ export default function CreateProjectForm({
           {/* ──── Section 1: Basic Project Info ──── */}
           <section className="rounded-lg border border-ink/12 bg-surface p-6 shadow-sm">
             <div className="mb-5 border-b border-ink/10 pb-3">
-              <span className="text-[12px] font-semibold tracking-wider text-gold-800 uppercase">
+              <span className="text-[13px] font-semibold tracking-wider text-gold-800 uppercase">
                 الخطوة الأولى
               </span>
               <h2 className="text-lg font-semibold">تفاصيل المشروع الأساسية</h2>
@@ -180,7 +180,7 @@ export default function CreateProjectForm({
               <div className="md:col-span-2">
                 <label
                   htmlFor="p-name"
-                  className="mb-1.5 block text-[13px] font-medium text-ink/75"
+                  className="mb-1.5 block text-[13px] font-medium text-ink/90"
                 >
                   اسم المشروع <span className="text-red-500">*</span>
                 </label>
@@ -199,7 +199,7 @@ export default function CreateProjectForm({
               <div>
                 <label
                   htmlFor="p-kicker"
-                  className="mb-1.5 block text-[13px] font-medium text-ink/75"
+                  className="mb-1.5 block text-[13px] font-medium text-ink/90"
                 >
                   التصنيف / العبارة العلوية
                 </label>
@@ -217,7 +217,7 @@ export default function CreateProjectForm({
               <div>
                 <label
                   htmlFor="p-dept"
-                  className="mb-1.5 block text-[13px] font-medium text-ink/75"
+                  className="mb-1.5 block text-[13px] font-medium text-ink/90"
                 >
                   القسم التابع له
                 </label>
@@ -235,7 +235,7 @@ export default function CreateProjectForm({
               <div>
                 <label
                   htmlFor="p-owner"
-                  className="mb-1.5 block text-[13px] font-medium text-ink/75"
+                  className="mb-1.5 block text-[13px] font-medium text-ink/90"
                 >
                   المسؤول الرئيسي عن المشروع
                 </label>
@@ -270,7 +270,7 @@ export default function CreateProjectForm({
               <div>
                 <label
                   htmlFor="p-due"
-                  className="mb-1.5 block text-[13px] font-medium text-ink/75"
+                  className="mb-1.5 block text-[13px] font-medium text-ink/90"
                 >
                   تاريخ التسليم المستهدف
                 </label>
@@ -287,7 +287,7 @@ export default function CreateProjectForm({
               <div className="md:col-span-2">
                 <label
                   htmlFor="p-github"
-                  className="mb-1.5 block text-[13px] font-medium text-ink/75"
+                  className="mb-1.5 block text-[13px] font-medium text-ink/90"
                 >
                   رابط مستودع GitHub (اختياري)
                 </label>
@@ -305,7 +305,7 @@ export default function CreateProjectForm({
               <div className="md:col-span-2">
                 <label
                   htmlFor="p-note"
-                  className="mb-1.5 block text-[13px] font-medium text-ink/75"
+                  className="mb-1.5 block text-[13px] font-medium text-ink/90"
                 >
                   وصف ونطاق عمل المشروع
                 </label>
@@ -325,7 +325,7 @@ export default function CreateProjectForm({
           <section className="rounded-lg border border-ink/12 bg-surface p-6 shadow-sm">
             <div className="mb-4 border-b border-ink/10 pb-3 flex items-center justify-between">
               <div>
-                <span className="text-[12px] font-semibold tracking-wider text-gold-800 uppercase">
+                <span className="text-[13px] font-semibold tracking-wider text-gold-800 uppercase">
                   الخطوة الثانية
                 </span>
                 <h2 className="text-lg font-semibold">فريق عمل المشروع</h2>
@@ -335,7 +335,7 @@ export default function CreateProjectForm({
               </span>
             </div>
 
-            <p className="mb-4 text-[13px] text-ink/60">
+            <p className="mb-4 text-[13px] text-ink/80">
               حدّد الأعضاء المشاركين في هذا المشروع وحدد دور كل منهم (مدير أو عضو):
             </p>
 
@@ -370,26 +370,26 @@ export default function CreateProjectForm({
                         <div className="text-[15px] font-semibold text-ink">
                           {u.name}
                           {isOwner && (
-                            <span className="ms-1.5 rounded bg-gold-100 px-1.5 py-0.5 text-[11px] font-medium text-gold-800">
+                            <span className="ms-1.5 rounded bg-gold-100 px-1.5 py-0.5 text-[12px] font-medium text-gold-800">
                               المسؤول الرئيسي
                             </span>
                           )}
                         </div>
-                        <div className="text-[13px] text-ink/50">{u.email}</div>
+                        <div className="text-[13px] text-ink/70">{u.email}</div>
                       </label>
                     </div>
 
                     {isSelected && (
-                      <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-2 text-[12px]">
-                        <span className="text-ink/55">الدور في المشروع:</span>
+                      <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-2 text-[13px]">
+                        <span className="text-ink/75">الدور في المشروع:</span>
                         <div className="flex gap-1">
                           <button
                             type="button"
                             onClick={() => changeMemberRole(u.id, "MANAGER")}
-                            className={`rounded px-2 py-0.5 text-[12px] font-medium ${
+                            className={`rounded px-2 py-0.5 text-[13px] font-medium ${
                               currentMember?.role === "MANAGER"
                                 ? "bg-accent text-white"
-                                : "bg-ink/5 text-ink/60 hover:bg-ink/10"
+                                : "bg-ink/5 text-ink/80 hover:bg-ink/10"
                             }`}
                           >
                             مدير
@@ -397,10 +397,10 @@ export default function CreateProjectForm({
                           <button
                             type="button"
                             onClick={() => changeMemberRole(u.id, "MEMBER")}
-                            className={`rounded px-2 py-0.5 text-[12px] font-medium ${
+                            className={`rounded px-2 py-0.5 text-[13px] font-medium ${
                               currentMember?.role === "MEMBER"
                                 ? "bg-accent text-white"
-                                : "bg-ink/5 text-ink/60 hover:bg-ink/10"
+                                : "bg-ink/5 text-ink/80 hover:bg-ink/10"
                             }`}
                           >
                             عضو
@@ -418,7 +418,7 @@ export default function CreateProjectForm({
           <section className="rounded-lg border border-ink/12 bg-surface p-6 shadow-sm">
             <div className="mb-4 border-b border-ink/10 pb-3 flex items-center justify-between">
               <div>
-                <span className="text-[12px] font-semibold tracking-wider text-gold-800 uppercase">
+                <span className="text-[13px] font-semibold tracking-wider text-gold-800 uppercase">
                   الخطوة الثالثة
                 </span>
                 <h2 className="text-lg font-semibold">مهام المشروع الأولية وإسنادها</h2>
@@ -432,7 +432,7 @@ export default function CreateProjectForm({
               </button>
             </div>
 
-            <p className="mb-4 text-[13px] text-ink/60">
+            <p className="mb-4 text-[13px] text-ink/80">
               أضف المهام المطلوبة للبدء في هذا المشروع وخصّص كل مهمة للعضو المناسب:
             </p>
 
@@ -442,7 +442,7 @@ export default function CreateProjectForm({
                   key={t.id}
                   className="flex flex-col gap-2 rounded-md border border-ink/12 bg-white p-3 sm:flex-row sm:items-center"
                 >
-                  <span className="text-[13px] font-semibold text-ink/40 sm:w-6">
+                  <span className="text-[13px] font-semibold text-ink/65 sm:w-6">
                     #{idx + 1}
                   </span>
 
@@ -476,7 +476,7 @@ export default function CreateProjectForm({
                     type="button"
                     onClick={() => removeTaskRow(t.id)}
                     title="حذف المهمة"
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-ink/30 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-ink/60 hover:bg-red-50 hover:text-red-600 transition-colors"
                   >
                     ✕
                   </button>
@@ -484,7 +484,7 @@ export default function CreateProjectForm({
               ))}
 
               {tasks.length === 0 && (
-                <div className="rounded-md border border-dashed border-ink/20 py-8 text-center text-[13px] text-ink/50">
+                <div className="rounded-md border border-dashed border-ink/20 py-8 text-center text-[13px] text-ink/70">
                   لم تُضف أي مهام بعد. اضغط على «إضافة مهمة أخرى» للبدء.
                 </div>
               )}
@@ -495,7 +495,7 @@ export default function CreateProjectForm({
           <div className="flex items-center justify-end gap-3 border-t border-ink/15 pt-6">
             <Link
               href="/"
-              className="rounded-md border border-ink/20 px-5 py-2.5 text-[15px] font-medium text-ink/70 hover:bg-ink/5 transition-colors"
+              className="rounded-md border border-ink/20 px-5 py-2.5 text-[15px] font-medium text-ink/85 hover:bg-ink/5 transition-colors"
             >
               إلغاء
             </Link>

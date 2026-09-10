@@ -8,7 +8,7 @@ import type {
 } from "@prisma/client";
 import { formatLongDate, formatShortDate, ymd } from "./calendar";
 import { APPROVAL_STATUS_LABEL, STATUS_LABEL } from "./labels";
-import { ROLE_LABEL } from "./permissions";
+import { openSubtaskCount, ROLE_LABEL } from "./permissions";
 
 /**
  * The database rows are shaped for storage; the screens want Arabic labels,
@@ -25,11 +25,22 @@ export const projectInclude = {
     include: {
       assignee: { select: { id: true, name: true } },
       addedBy: { select: { name: true } },
+      subtasks: {
+        orderBy: { position: "asc" },
+        include: {
+          assignee: { select: { id: true, name: true } },
+          addedBy: { select: { name: true } },
+        },
+      },
     },
   },
   activity: {
     orderBy: { createdAt: "desc" },
-    take: 6,
+    // The project page gives this a tab of its own, which can hold a real
+    // history rather than the handful a sidebar card had room for. Still
+    // capped: the feed is append-only and grows without limit. Surfaces that
+    // only want a summary — the dashboard panel — slice what they need.
+    take: 50,
     include: { user: { select: { name: true } } },
   },
   members: {
@@ -43,6 +54,25 @@ export const projectInclude = {
 export type ProjectRow = Prisma.ProjectGetPayload<{
   include: typeof projectInclude;
 }>;
+
+/** One step of a task. Carries the parent's lifecycle, minus a `startDate`. */
+export type SubtaskView = {
+  id: string;
+  taskId: string;
+  title: string;
+  done: boolean;
+  assignee: string | null;
+  assigneeId: string | null;
+  addedBy: string | null;
+  addedById: string | null;
+  approvalStatus: TaskApprovalStatus;
+  approvalStatusLabel: string;
+  completionNote: string | null;
+  startedDay: string | null;
+  completedDay: string | null;
+  /** Optional deadline for this step alone. */
+  dueDate: string | null;
+};
 
 export type TaskView = {
   id: string;
@@ -63,6 +93,17 @@ export type TaskView = {
   startDate: string | null;
   /** Optional planned deadline for the task. */
   dueDate: string | null;
+  /** The task's steps, in order. */
+  subtasks: SubtaskView[];
+  /**
+   * How the steps stand: `subtaskTotal` excludes turned-away ones, the same way
+   * `ProjectView.total` excludes turned-away tasks. Both zero when a task has no
+   * steps, which is what the UI checks before showing a counter at all.
+   */
+  subtaskDone: number;
+  subtaskTotal: number;
+  /** Steps still open, which is what holds a completion request back. */
+  openSubtasks: number;
 };
 
 /** `who` is null for system-written entries, and for rows logged before the
@@ -116,23 +157,46 @@ function relativeArabic(then: Date, now: Date): string {
 }
 
 export function toProjectView(row: ProjectRow, now: Date): ProjectView {
-  const tasks: TaskView[] = row.tasks.map((t) => ({
-    id: t.id,
-    title: t.title,
-    stage: t.stage,
-    done: t.approvalStatus === "DONE",
-    assignee: t.assignee?.name ?? null,
-    assigneeId: t.assignee?.id ?? null,
-    addedBy: t.addedBy?.name ?? null,
-    approvalStatus: t.approvalStatus,
-    approvalStatusLabel: APPROVAL_STATUS_LABEL[t.approvalStatus],
-    completionNote: t.completionNote ?? null,
-    startedDay: t.startedAt ? ymd(t.startedAt) : null,
-    completedDay: t.completedAt ? ymd(t.completedAt) : null,
-    completionRequestedDay: t.completionRequestedAt ? ymd(t.completionRequestedAt) : null,
-    startDate: t.startDate ? ymd(t.startDate) : null,
-    dueDate: t.dueDate ? ymd(t.dueDate) : null,
-  }));
+  const tasks: TaskView[] = row.tasks.map((t) => {
+    const subtasks: SubtaskView[] = t.subtasks.map((s) => ({
+      id: s.id,
+      taskId: s.taskId,
+      title: s.title,
+      done: s.approvalStatus === "DONE",
+      assignee: s.assignee?.name ?? null,
+      assigneeId: s.assignee?.id ?? null,
+      addedBy: s.addedBy?.name ?? null,
+      addedById: s.addedById ?? null,
+      approvalStatus: s.approvalStatus,
+      approvalStatusLabel: APPROVAL_STATUS_LABEL[s.approvalStatus],
+      completionNote: s.completionNote ?? null,
+      startedDay: s.startedAt ? ymd(s.startedAt) : null,
+      completedDay: s.completedAt ? ymd(s.completedAt) : null,
+      dueDate: s.dueDate ? ymd(s.dueDate) : null,
+    }));
+
+    return {
+      id: t.id,
+      title: t.title,
+      stage: t.stage,
+      done: t.approvalStatus === "DONE",
+      assignee: t.assignee?.name ?? null,
+      assigneeId: t.assignee?.id ?? null,
+      addedBy: t.addedBy?.name ?? null,
+      approvalStatus: t.approvalStatus,
+      approvalStatusLabel: APPROVAL_STATUS_LABEL[t.approvalStatus],
+      completionNote: t.completionNote ?? null,
+      startedDay: t.startedAt ? ymd(t.startedAt) : null,
+      completedDay: t.completedAt ? ymd(t.completedAt) : null,
+      completionRequestedDay: t.completionRequestedAt ? ymd(t.completionRequestedAt) : null,
+      startDate: t.startDate ? ymd(t.startDate) : null,
+      dueDate: t.dueDate ? ymd(t.dueDate) : null,
+      subtasks,
+      subtaskDone: subtasks.filter((s) => s.done).length,
+      subtaskTotal: subtasks.filter((s) => s.approvalStatus !== "REJECTED").length,
+      openSubtasks: openSubtaskCount(subtasks),
+    };
+  });
 
   const doneCount = tasks.filter((t) => t.done).length;
   const total = tasks.filter((t) => t.approvalStatus !== "REJECTED").length;

@@ -69,7 +69,7 @@ export default function MobileScreen({
                   <span className="text-[17px] font-semibold">{p.name}</span>
                   <span className="ms-auto text-[15px] tabular-nums">{p.pct}%</span>
                 </span>
-                <span className="flex items-center gap-2 text-[13px] text-ink/55">
+                <span className="flex items-center gap-2 text-[13px] text-ink/75">
                   <span>{p.dept ?? "—"}</span>
                   <span>·</span>
                   <span>{p.due}</span>
@@ -80,7 +80,7 @@ export default function MobileScreen({
             ))}
 
           {showList && rows.length === 0 && (
-            <p className="py-15 text-[15px] text-ink/50">لا مشاريع بهذه الحالة.</p>
+            <p className="py-15 text-[15px] text-ink/70">لا مشاريع بهذه الحالة.</p>
           )}
 
           {showDetail && selected && (
@@ -91,7 +91,7 @@ export default function MobileScreen({
           )}
 
           {!onProjects && (
-            <p className="py-15 text-[15px] text-ink/50">
+            <p className="py-15 text-[15px] text-ink/70">
               {NOT_BUILT[tab as Exclude<MobileTab, "المشاريع">]}
             </p>
           )}
@@ -111,7 +111,7 @@ export default function MobileScreen({
                 className={`-mt-px min-h-[46px] flex-1 cursor-pointer border-t-2 pt-3.5 pb-[18px] text-[14px] ${
                   active
                     ? "border-t-accent text-accent"
-                    : "border-t-transparent text-ink/55"
+                    : "border-t-transparent text-ink/75"
                 }`}
               >
                 {t}

@@ -20,7 +20,7 @@ export default function BoardScreen({
     <div className="shell pt-[34px] pb-20">
       <div className="mb-5 flex items-baseline gap-3.5">
         <SectionLabel tone="gold">لوحة المهام</SectionLabel>
-        <p className="text-[14px] text-ink/55">
+        <p className="text-[14px] text-ink/75">
           استعراض وتتبع المهام عبر المراحل المختلفة
         </p>
       </div>
@@ -40,14 +40,14 @@ export default function BoardScreen({
                 <h2 className="text-[17px] font-semibold text-ink">
                   {STAGE_LABEL[stage]}
                 </h2>
-                <span className="rounded-full bg-ink/8 px-2 py-0.5 text-[12px] font-semibold tabular-nums text-ink/60">
+                <span className="rounded-full bg-ink/8 px-2 py-0.5 text-[13px] font-semibold tabular-nums text-ink/80">
                   {column.length}
                 </span>
               </div>
 
               <div className="flex flex-col gap-3 pt-1">
                 {column.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-ink/12 p-6 text-center text-[13px] text-ink/30">
+                  <div className="rounded-xl border border-dashed border-ink/12 p-6 text-center text-[13px] text-ink/60">
                     لا مهام في هذه المرحلة
                   </div>
                 ) : (
@@ -65,13 +65,13 @@ export default function BoardScreen({
                       >
                         {/* Project Name & Status Badge */}
                         <div className="flex w-full items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold tracking-wide text-gold-800">
+                          <span className="inline-flex items-center gap-1 text-[12px] font-semibold tracking-wide text-gold-800">
                             <FolderKanban className="h-3 w-3" />
                             {project.name}
                           </span>
 
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
                           >
                             <span className={`h-1.5 w-1.5 rounded-full ${statusCfg.dotBg}`} />
                             {statusCfg.label}
@@ -84,17 +84,17 @@ export default function BoardScreen({
                         </span>
 
                         {/* Assignee & Dates info */}
-                        <div className="mt-1 flex w-full flex-col gap-1 border-t border-ink/6 pt-2 text-[12px] text-ink/55">
+                        <div className="mt-1 flex w-full flex-col gap-1 border-t border-ink/6 pt-2 text-[13px] text-ink/75">
                           <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 text-ink/35" />
+                            <User className="h-3.5 w-3.5 text-ink/60" />
                             <span>{(task.assignee ?? project.owner) ?? "غير مُسند"}</span>
                           </div>
 
                           {(startDate || endDate) && (
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-ink/45 pt-0.5">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-ink/70 pt-0.5">
                               {startDate && (
                                 <span className="inline-flex items-center gap-1">
-                                  <Clock className="h-3 w-3 text-ink/35" />
+                                  <Clock className="h-3 w-3 text-ink/60" />
                                   <span>بداية: {startDate}</span>
                                 </span>
                               )}
@@ -103,7 +103,7 @@ export default function BoardScreen({
 
                               {endDate && (
                                 <span className="inline-flex items-center gap-1">
-                                  <CheckCircle2 className="h-3 w-3 text-ink/35" />
+                                  <CheckCircle2 className="h-3 w-3 text-ink/60" />
                                   <span>نهاية: {endDate}</span>
                                 </span>
                               )}

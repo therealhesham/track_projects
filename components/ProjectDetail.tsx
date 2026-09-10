@@ -21,8 +21,8 @@ export function SectionLabel({
 }) {
   return (
     <div
-      className={`text-[12px] font-bold tracking-[0.08em] ${
-        tone === "gold" ? "text-gold-800" : "text-ink/65"
+      className={`text-[13px] font-bold tracking-[0.08em] ${
+        tone === "gold" ? "text-gold-800" : "text-ink/85"
       } ${className}`}
     >
       {children}
@@ -79,7 +79,7 @@ export default function ProjectDetail({
         </>
       )}
 
-      <p className="text-[14px] text-ink/60">{metaLine(project)}</p>
+      <p className="text-[14px] text-ink/80">{metaLine(project)}</p>
 
       {panel && project.note && (
         <p className="mt-3 max-w-[36ch] text-[15px] leading-[1.7] text-pretty">
@@ -97,7 +97,7 @@ export default function ProjectDetail({
         >
           {project.pct}%
         </div>
-        <div className="text-[13px] text-ink/55">
+        <div className="text-[13px] text-ink/75">
           أُنجزت {project.doneCount} من {project.total} مهام
         </div>
       </div>
@@ -110,7 +110,7 @@ export default function ProjectDetail({
 
           {/* Pending badge for whoever can act on it */}
           {pendingCount > 0 && (currentUser.role === "SUPER_ADMIN" || isProjectManager) && (
-            <span className="rounded-full bg-gold-100 border border-gold-600/30 px-2 py-0.5 text-[11px] font-medium text-gold-800">
+            <span className="rounded-full bg-gold-100 border border-gold-600/30 px-2 py-0.5 text-[12px] font-medium text-gold-800">
               {pendingCount} في انتظار الاعتماد
             </span>
           )}
@@ -120,7 +120,7 @@ export default function ProjectDetail({
             <button
               type="button"
               onClick={() => setAddTaskOpen(true)}
-              className="ms-auto flex items-center gap-1 rounded-md border border-accent/30 bg-accent/5 px-2.5 py-1 text-[12px] font-medium text-accent hover:bg-accent/10 transition-colors"
+              className="ms-auto flex items-center gap-1 rounded-md border border-accent/30 bg-accent/5 px-2.5 py-1 text-[13px] font-medium text-accent hover:bg-accent/10 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" /> مهمة جديدة
             </button>
@@ -136,10 +136,11 @@ export default function ProjectDetail({
             who={task.assignee ?? project.owner}
             size={panel ? "desktop" : "mobile"}
             isProjectManager={isProjectManager}
+            projectMembers={project.members}
           />
         ))}
         {visibleTasks.length === 0 && (
-          <p className="py-4 text-center text-[14px] text-ink/40">
+          <p className="py-4 text-center text-[14px] text-ink/65">
             لا مهام لهذا المشروع بعد.
           </p>
         )}
@@ -149,13 +150,15 @@ export default function ProjectDetail({
         <>
           <SectionLabel className="mt-[30px] mb-2.5">آخر التحديثات</SectionLabel>
           <div className="flex flex-col gap-2.5">
-            {project.activity.map((a, i) => (
+            {/* A summary, not the history — that lives on the project page's
+                own tab. The query returns far more than this column can hold. */}
+            {project.activity.slice(0, 6).map((a, i) => (
               <div key={i} className="flex gap-3 text-[14px]">
-                <span className="min-w-[58px] text-ink/45">{a.when}</span>
+                <span className="min-w-[58px] text-ink/70">{a.when}</span>
                 <span className="leading-[1.6]">
                   {a.what}
                   {a.who && (
-                    <span className="mt-0.5 block text-[12px] text-ink/40">
+                    <span className="mt-0.5 block text-[13px] text-ink/65">
                       بواسطة {a.who}
                     </span>
                   )}

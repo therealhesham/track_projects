@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { Check, X, Trash2 } from "lucide-react";
-import type { TaskView } from "@/lib/view";
+import type { MemberView, TaskView } from "@/lib/view";
 import { APPROVAL_STATUS_TAG } from "@/lib/labels";
+import SubtaskList from "./SubtaskList";
 import {
   approveTask,
   rejectTask,
@@ -30,6 +31,7 @@ export default function TaskRow({
   who,
   size = "desktop",
   isProjectManager,
+  projectMembers = [],
 }: {
   task: TaskView;
   /** Shown at the far end on desktop. */
@@ -37,6 +39,8 @@ export default function TaskRow({
   size?: "desktop" | "mobile";
   /** Whether the viewer manages this specific project (ProjectRole, not the account-wide role). */
   isProjectManager: boolean;
+  /** Offered in the assignee picker when adding a step. */
+  projectMembers?: MemberView[];
 }) {
   const { currentUser } = useRole();
   const mobile = size === "mobile";
@@ -79,6 +83,14 @@ export default function TaskRow({
     if (task.approvalStatus === "ACTIVE") {
       // Anyone who carries the task (or super admin) can request completion
       if (canRequestCompletion(currentUser, task.assigneeId)) {
+        // Not while a step is still open — the same rule app/actions.ts enforces.
+        if (task.openSubtasks > 0) {
+          return (
+            <div className="ms-auto text-[13px] text-gold-800">
+              يتبقى {task.openSubtasks} مهمة فرعية قبل الإتمام
+            </div>
+          );
+        }
         if (showNoteInput) {
           return (
             <div className="ms-auto flex items-center gap-1.5">
@@ -87,7 +99,7 @@ export default function TaskRow({
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="ملاحظة (اختياري)"
-                className="w-36 rounded border border-ink/20 bg-white px-2 py-0.5 text-[12px] outline-none focus:border-accent"
+                className="w-36 rounded border border-ink/20 bg-white px-2 py-0.5 text-[13px] outline-none focus:border-accent"
                 autoFocus
               />
               <ActionBtn
@@ -127,7 +139,7 @@ export default function TaskRow({
         return (
           <div className="ms-auto flex flex-col items-end gap-1">
             {task.completionNote && (
-              <span className="text-[12px] text-ink/50 italic">
+              <span className="text-[13px] text-ink/70 italic">
                 ملاحظة: {task.completionNote}
               </span>
             )}
@@ -160,7 +172,7 @@ export default function TaskRow({
         type="button"
         title="حذف المهمة"
         onClick={() => run(() => deleteTask(task.id))}
-        className="text-ink/25 hover:text-red-500 transition-colors text-[14px] ms-1"
+        className="text-ink/55 hover:text-red-500 transition-colors text-[14px] ms-1"
         aria-label={`حذف: ${task.title}`}
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -187,7 +199,7 @@ export default function TaskRow({
         {/* Status dot */}
         <span
           aria-hidden
-          className={`grid h-[17px] w-[17px] flex-none place-items-center rounded-md border text-[12px] ${
+          className={`grid h-[17px] w-[17px] flex-none place-items-center rounded-md border text-[13px] ${
             task.approvalStatus === "DONE"
               ? "border-accent bg-accent/8 text-accent"
               : task.approvalStatus === "REJECTED"
@@ -208,7 +220,7 @@ export default function TaskRow({
             task.approvalStatus === "DONE"
               ? "line-through opacity-50"
               : task.approvalStatus === "REJECTED"
-                ? "line-through opacity-40 text-ink/50"
+                ? "line-through opacity-40 text-ink/70"
                 : ""
           }`}
         >
@@ -218,7 +230,7 @@ export default function TaskRow({
         {/* Approval status badge — desktop only */}
         {!mobile && (
           <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${badgeClass}`}
+            className={`rounded-full px-2 py-0.5 text-[12px] font-medium whitespace-nowrap ${badgeClass}`}
           >
             {task.approvalStatusLabel}
           </span>
@@ -226,12 +238,12 @@ export default function TaskRow({
 
         {/* Assignee name — desktop only */}
         {who && !mobile && task.approvalStatus !== "PENDING_APPROVAL" && (
-          <span className="text-[12px] text-ink/45 whitespace-nowrap">{who}</span>
+          <span className="text-[13px] text-ink/70 whitespace-nowrap">{who}</span>
         )}
 
         {/* Completed date */}
         {task.completedDay && !mobile && (
-          <span className="text-[12px] text-ink/35 tabular-nums">
+          <span className="text-[13px] text-ink/60 tabular-nums">
             {task.completedDay}
           </span>
         )}
@@ -249,11 +261,19 @@ export default function TaskRow({
       {/* Mobile: badge below title */}
       {mobile && (
         <span
-          className={`self-start rounded-full px-2 py-0.5 text-[11px] font-medium ${badgeClass}`}
+          className={`self-start rounded-full px-2 py-0.5 text-[12px] font-medium ${badgeClass}`}
         >
           {task.approvalStatusLabel}
         </span>
       )}
+
+      {/* Steps */}
+      <SubtaskList
+        task={task}
+        isProjectManager={isProjectManager}
+        projectMembers={projectMembers}
+        size={size}
+      />
     </div>
   );
 }
@@ -275,14 +295,14 @@ function ActionBtn({
     reject:
       "border-red-300 bg-red-50 text-red-700 hover:bg-red-100",
     neutral:
-      "border-ink/15 bg-transparent text-ink/60 hover:bg-ink/5",
+      "border-ink/15 bg-transparent text-ink/80 hover:bg-ink/5",
   }[variant];
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md border px-2.5 py-0.5 text-[12px] font-medium transition-colors ${cls}`}
+      className={`rounded-md border px-2.5 py-0.5 text-[13px] font-medium transition-colors ${cls}`}
     >
       {label}
     </button>

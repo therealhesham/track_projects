@@ -56,7 +56,7 @@ export default function StatsStrip({
               >
                 {f.value}
               </div>
-              <div className="mt-1 text-[13px] font-bold tracking-[0.02em] text-ink/65">
+              <div className="mt-1 text-[13px] font-bold tracking-[0.02em] text-ink/85">
                 {f.label}
               </div>
             </div>

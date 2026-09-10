@@ -118,6 +118,109 @@ export function canCreateProject(viewer: Viewer): boolean {
   return viewer.role === "SUPER_ADMIN" || viewer.role === "MANAGER";
 }
 
+// ── Subtasks ────────────────────────────────────────────────────────────────
+
+/**
+ * A subtask is a step of one task, and the gates follow that: the project's
+ * manager rules on it as they would the parent, and the person carrying the
+ * parent gets a say no plain MEMBER has — breaking their own task into steps,
+ * and marking those steps done, is the work itself.
+ *
+ * So a third input joins the two axes above: `parentAssigneeId`, the holder of
+ * the task these steps belong to.
+ */
+
+/**
+ * Writing down a step. The project's manager, and whoever carries the parent
+ * task — nobody else, so a task's breakdown stays between the two people
+ * answerable for it.
+ */
+export function canAddSubtask(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+  parentAssigneeId: string | null,
+): boolean {
+  return (
+    viewer.role === "SUPER_ADMIN" ||
+    membership === "MANAGER" ||
+    viewer.id === parentAssigneeId
+  );
+}
+
+/**
+ * Letting a proposed step in, or turning it away. The project's own manager and
+ * nobody else, exactly as `canApproveTask` — a super admin does not stand in.
+ */
+export function canApproveSubtask(membership: ProjectRole | null): boolean {
+  return membership === "MANAGER";
+}
+
+/**
+ * Whether adding this step can skip `PENDING_APPROVAL` and land ACTIVE. Not a
+ * hole in the gate above — it is the gate already satisfied: the approver is the
+ * one adding it, and making them approve their own step would be pure
+ * ceremony. A step proposed by the parent's assignee still waits.
+ */
+export function subtaskStartsApproved(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+): boolean {
+  return viewer.role === "SUPER_ADMIN" || canApproveSubtask(membership);
+}
+
+/**
+ * Asking for a step to be marked done. The person carrying the step, or — when
+ * it was left unassigned, and so falls to them — whoever carries the parent.
+ */
+export function canRequestSubtaskCompletion(
+  viewer: Viewer,
+  subtaskAssigneeId: string | null,
+  parentAssigneeId: string | null,
+): boolean {
+  if (viewer.role === "SUPER_ADMIN") return true;
+  if (subtaskAssigneeId) return viewer.id === subtaskAssigneeId;
+  return viewer.id === parentAssigneeId;
+}
+
+/** Signing off a step's completion, or sending it back. */
+export function canReviewSubtaskCompletion(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+): boolean {
+  return canReviewCompletion(viewer, membership);
+}
+
+/**
+ * Removing a step. The project's manager may at any point; whoever proposed one
+ * may withdraw it while it is still pending or already turned away — the same
+ * reasoning as `canDeleteDailyTask`, and for the same reason: past that, they
+ * would be erasing something the manager admitted.
+ */
+export function canDeleteSubtask(
+  viewer: Viewer,
+  membership: ProjectRole | null,
+  addedById: string | null,
+  approvalStatus: TaskApprovalStatus,
+): boolean {
+  if (viewer.role === "SUPER_ADMIN" || membership === "MANAGER") return true;
+  if (viewer.id !== addedById) return false;
+  return approvalStatus === "PENDING_APPROVAL" || approvalStatus === "REJECTED";
+}
+
+/**
+ * The rule that runs the other way, from step up to parent: a task cannot be
+ * sent for completion while any of its steps is still open. A turned-away step
+ * is not open — it is work nobody owes, the same exclusion `toProjectView`
+ * makes when counting.
+ */
+export function openSubtaskCount(
+  subtasks: readonly { approvalStatus: TaskApprovalStatus }[],
+): number {
+  return subtasks.filter(
+    (s) => s.approvalStatus !== "DONE" && s.approvalStatus !== "REJECTED",
+  ).length;
+}
+
 // ── Daily tasks ─────────────────────────────────────────────────────────────
 
 /**

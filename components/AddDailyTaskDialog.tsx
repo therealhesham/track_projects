@@ -79,7 +79,7 @@ export default function AddDailyTaskDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-ink/50 hover:bg-ink/5 hover:text-ink"
+            className="rounded-md p-1 text-ink/70 hover:bg-ink/5 hover:text-ink"
             aria-label="إغلاق"
           >
             <X className="h-4 w-4" />
@@ -91,7 +91,7 @@ export default function AddDailyTaskDialog({
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="daily-title"
-              className="text-[12px] tracking-wide text-ink/60"
+              className="text-[13px] tracking-wide text-ink/80"
             >
               عنوان المهمة <span className="text-red-500">*</span>
             </label>
@@ -112,7 +112,7 @@ export default function AddDailyTaskDialog({
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="daily-day"
-              className="text-[12px] tracking-wide text-ink/60"
+              className="text-[13px] tracking-wide text-ink/80"
             >
               اليوم <span className="text-red-500">*</span>
             </label>
@@ -129,7 +129,7 @@ export default function AddDailyTaskDialog({
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="daily-owner"
-                className="text-[12px] tracking-wide text-ink/60"
+                className="text-[13px] tracking-wide text-ink/80"
               >
                 صاحب المهمة
               </label>
@@ -152,7 +152,7 @@ export default function AddDailyTaskDialog({
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="daily-note"
-              className="text-[12px] tracking-wide text-ink/60"
+              className="text-[13px] tracking-wide text-ink/80"
             >
               ملاحظة (اختياري)
             </label>
@@ -167,13 +167,13 @@ export default function AddDailyTaskDialog({
           </div>
 
           {/* Info banner */}
-          <div className="rounded-md bg-gold-100 border border-gold-600/20 px-3 py-2.5 text-[12px] text-gold-800 leading-relaxed">
+          <div className="rounded-md bg-gold-100 border border-gold-600/20 px-3 py-2.5 text-[13px] text-gold-800 leading-relaxed">
             المهمة ستُضاف في حالة <strong>«في انتظار الاعتماد»</strong> ريثما
             يوافق عليها السوبر ادمن.
           </div>
 
           {error && (
-            <p className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-[12px] text-red-700">
+            <p className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-[13px] text-red-700">
               {error}
             </p>
           )}
@@ -184,7 +184,7 @@ export default function AddDailyTaskDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-ink/15 px-4 py-2 text-[15px] text-ink/70 hover:bg-ink/5"
+            className="rounded-md border border-ink/15 px-4 py-2 text-[15px] text-ink/85 hover:bg-ink/5"
           >
             إلغاء
           </button>

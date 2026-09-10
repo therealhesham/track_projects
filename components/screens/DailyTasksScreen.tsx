@@ -94,7 +94,7 @@ export default function DailyTasksScreen({
         <div className="flex items-center gap-3">
           <CalendarDays className="h-6 w-6 text-accent" />
           <h2 className="text-[22px] font-semibold text-ink">مهامي اليومية</h2>
-          <span className="inline-flex items-center gap-1 rounded-full border border-ink/10 bg-ink/6 px-2.5 py-0.5 text-[12px] font-medium text-ink/60">
+          <span className="inline-flex items-center gap-1 rounded-full border border-ink/10 bg-ink/6 px-2.5 py-0.5 text-[13px] font-medium text-ink/80">
             <User className="h-3.5 w-3.5" />
             {openCount} مهمة مفتوحة
           </span>
@@ -113,7 +113,7 @@ export default function DailyTasksScreen({
                 } ${
                   range === r.key
                     ? "bg-accent text-paper"
-                    : "text-ink/70 hover:bg-ink/7"
+                    : "text-ink/85 hover:bg-ink/7"
                 }`}
               >
                 {r.label}
@@ -152,7 +152,7 @@ export default function DailyTasksScreen({
       {/* My tasks, grouped by the day they belong to. */}
       {days.length === 0 ? (
         <div className="rounded-xl border border-dashed border-ink/15 py-16 text-center">
-          <p className="text-[15px] text-ink/50">
+          <p className="text-[15px] text-ink/70">
             {range === "today"
               ? "لا توجد مهام يومية لهذا اليوم."
               : "لا توجد مهام يومية بعد."}
@@ -177,7 +177,7 @@ export default function DailyTasksScreen({
                   {formatDayTitle(day)}
                 </h3>
                 {day === today && (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-white">
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-[12px] font-semibold text-white">
                     اليوم
                   </span>
                 )}
@@ -248,17 +248,17 @@ function TaskRow({
         <div className="flex min-w-0 flex-col gap-1">
           <p
             className={`text-[15px] font-semibold leading-snug ${
-              task.done ? "text-ink/45 line-through" : "text-ink"
+              task.done ? "text-ink/70 line-through" : "text-ink"
             }`}
           >
             {task.title}
           </p>
           {task.note && (
-            <p className="text-[13px] leading-relaxed text-ink/55">{task.note}</p>
+            <p className="text-[13px] leading-relaxed text-ink/75">{task.note}</p>
           )}
-          <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[12px] text-ink/45">
+          <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[13px] text-ink/70">
             <span
-              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${cfg.bg} ${cfg.text} ${cfg.border}`}
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[12px] font-semibold ${cfg.bg} ${cfg.text} ${cfg.border}`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${cfg.dotBg}`} />
               {cfg.label}
@@ -272,7 +272,7 @@ function TaskRow({
             {showOwner && <span>· {task.dayLabel}</span>}
           </div>
           {task.completionNote && (
-            <p className="mt-1 rounded-md bg-ink/4 px-2.5 py-1.5 text-[12px] text-ink/60">
+            <p className="mt-1 rounded-md bg-ink/4 px-2.5 py-1.5 text-[13px] text-ink/80">
               ملاحظة الإتمام: {task.completionNote}
             </p>
           )}
@@ -349,7 +349,7 @@ function TaskRow({
         <div className="flex flex-col gap-2 rounded-md border border-ink/10 bg-surface p-3">
           <label
             htmlFor={`daily-note-${task.id}`}
-            className="text-[12px] text-ink/60"
+            className="text-[13px] text-ink/80"
           >
             ملاحظة عند تسجيل الإتمام (اختياري)
           </label>
@@ -380,7 +380,7 @@ function TaskRow({
       )}
 
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">
           {error}
         </p>
       )}
@@ -398,13 +398,13 @@ function ActionButton({
   const tones = {
     accent: "border-accent/25 bg-accent/10 text-accent hover:bg-accent/20",
     danger: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100",
-    quiet: "border-ink/12 bg-paper text-ink/55 hover:bg-ink/5 hover:text-ink",
+    quiet: "border-ink/12 bg-paper text-ink/75 hover:bg-ink/5 hover:text-ink",
   } as const;
 
   return (
     <button
       type="button"
-      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition disabled:opacity-40 ${tones[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition disabled:opacity-40 ${tones[tone]}`}
       {...props}
     >
       {children}

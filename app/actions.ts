@@ -13,16 +13,23 @@ import {
   sendTaskAssignedEmail,
 } from "@/lib/email";
 import {
+  canAddSubtask,
   canAddTask,
+  canApproveSubtask,
   canApproveTask,
   canCreateProject,
+  canDeleteSubtask,
   canDeleteTask,
   canEditProject,
   canManageMembers,
   canManageUsers,
   canMoveTask,
   canRequestCompletion,
+  canRequestSubtaskCompletion,
   canReviewCompletion,
+  canReviewSubtaskCompletion,
+  openSubtaskCount,
+  subtaskStartsApproved,
 } from "@/lib/permissions";
 import { requireViewer } from "@/lib/session";
 
@@ -53,6 +60,39 @@ async function viewerOn(projectId: string) {
     select: { role: true },
   });
   return { viewer, membership: membership?.role ?? null };
+}
+
+/**
+ * Same again, resolved from a subtask. Carries the parent task alongside it:
+ * every gate in lib/permissions for a step reads the parent's assignee, and the
+ * project the membership is judged against is the parent's too.
+ */
+async function viewerOnSubtask(subtaskId: string) {
+  const viewer = await requireViewer();
+  const subtask = await prisma.subtask.findUnique({
+    where: { id: subtaskId },
+    select: {
+      id: true,
+      title: true,
+      taskId: true,
+      assigneeId: true,
+      addedById: true,
+      approvalStatus: true,
+      startedAt: true,
+      task: {
+        select: { id: true, projectId: true, title: true, assigneeId: true },
+      },
+    },
+  });
+  if (!subtask) return { viewer, subtask: null, membership: null };
+
+  const membership = await prisma.projectMember.findUnique({
+    where: {
+      userId_projectId: { userId: viewer.id, projectId: subtask.task.projectId },
+    },
+    select: { role: true },
+  });
+  return { viewer, subtask, membership: membership?.role ?? null };
 }
 
 /** Same, resolved from a task rather than a project. */
@@ -458,6 +498,19 @@ export async function requestCompletion(
   if (task.approvalStatus !== "ACTIVE")
     return { ok: false, error: "المهمة غير نشطة" };
 
+  // A task broken into steps is not done while any step is still open. The UI
+  // disables the button, but the button is not the gate — this is.
+  const subtasks = await prisma.subtask.findMany({
+    where: { taskId },
+    select: { approvalStatus: true },
+  });
+  const open = openSubtaskCount(subtasks);
+  if (open > 0)
+    return {
+      ok: false,
+      error: `لا يمكن طلب إتمام المهمة قبل إنهاء مهامها الفرعية (${open} متبقية)`,
+    };
+
   await prisma.task.update({
     where: { id: taskId },
     data: {
@@ -650,6 +703,308 @@ export async function deleteTask(taskId: string): Promise<TaskActionResult> {
 
   revalidatePath("/");
   revalidatePath(`/projects/${task.projectId}`);
+  return { ok: true };
+}
+
+// ── Subtasks ─────────────────────────────────────────────────────────────────
+
+/**
+ * A step of a task, carrying the parent's lifecycle: proposed → admitted by the
+ * project's manager → completion requested → signed off. The actions below
+ * mirror the task ones above; what differs is who may call them (the parent's
+ * assignee has standing here that they lack on the project at large) and that a
+ * step's `title` is logged under the parent's, so the activity feed reads as
+ * one thread rather than two.
+ */
+
+/** How a step reads in the feed and in email: under its parent. */
+const stepLabel = (parentTitle: string, title: string) =>
+  `${parentTitle} ← ${title}`;
+
+export async function addSubtask(input: {
+  taskId: string;
+  title: string;
+  assigneeId?: string | null;
+  dueDate?: string | null;
+}): Promise<TaskActionResult> {
+  const { viewer, task, membership } = await viewerOnTask(input.taskId);
+  if (!task) return { ok: false, error: "المهمة غير موجودة" };
+  if (!canAddSubtask(viewer, membership, task.assigneeId))
+    return { ok: false, error: DENIED };
+
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "عنوان المهمة الفرعية مطلوب" };
+
+  // Steps under a task the board has already turned away, or already signed
+  // off, are work with nowhere to go.
+  if (task.approvalStatus === "DONE" || task.approvalStatus === "REJECTED")
+    return { ok: false, error: "لا يمكن إضافة مهام فرعية لمهمة منتهية" };
+
+  const approved = subtaskStartsApproved(viewer, membership);
+
+  const maxPos = await prisma.subtask.aggregate({
+    where: { taskId: input.taskId },
+    _max: { position: true },
+  });
+
+  await prisma.subtask.create({
+    data: {
+      taskId: input.taskId,
+      title,
+      position: (maxPos._max.position ?? -1) + 1,
+      assigneeId: input.assigneeId || null,
+      addedById: viewer.id,
+      approvalStatus: approved ? "ACTIVE" : "PENDING_APPROVAL",
+      startedAt: approved ? new Date() : null,
+      dueDate: input.dueDate ? new Date(input.dueDate) : null,
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      projectId: task.projectId,
+      userId: viewer.id,
+      message: approved
+        ? `تمت إضافة مهمة فرعية: "${stepLabel(task.title, title)}"`
+        : `تمت إضافة مهمة فرعية: "${stepLabel(task.title, title)}" — في انتظار الاعتماد`,
+    },
+  });
+
+  // Notify the assignee — best-effort, never blocks the action.
+  if (input.assigneeId) {
+    try {
+      const [project, assignee] = await Promise.all([
+        prisma.project.findUnique({
+          where: { id: task.projectId },
+          select: { name: true },
+        }),
+        prisma.user.findUnique({
+          where: { id: input.assigneeId },
+          select: { name: true, email: true },
+        }),
+      ]);
+      if (project && assignee) {
+        await sendTaskAssignedEmail({
+          to: assignee.email,
+          assigneeName: assignee.name,
+          taskTitle: stepLabel(task.title, title),
+          projectName: project.name,
+          projectId: task.projectId,
+          assignedByName: viewer.name,
+          startDate: null,
+          dueDate: input.dueDate ?? null,
+        });
+      }
+    } catch (err) {
+      console.error("[email] sendTaskAssignedEmail (subtask) failed:", err);
+    }
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/projects/${task.projectId}`);
+  return { ok: true };
+}
+
+/** The project's manager admits a proposed step → ACTIVE. */
+export async function approveSubtask(subtaskId: string): Promise<TaskActionResult> {
+  const { viewer, subtask, membership } = await viewerOnSubtask(subtaskId);
+  if (!canApproveSubtask(membership)) return { ok: false, error: DENIED };
+  if (!subtask) return { ok: false, error: "المهمة الفرعية غير موجودة" };
+  if (subtask.approvalStatus !== "PENDING_APPROVAL")
+    return { ok: false, error: "المهمة الفرعية ليست في انتظار الاعتماد" };
+
+  await prisma.subtask.update({
+    where: { id: subtaskId },
+    data: {
+      approvalStatus: "ACTIVE" as TaskApprovalStatus,
+      startedAt: subtask.startedAt ?? new Date(),
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      projectId: subtask.task.projectId,
+      userId: viewer.id,
+      message: `تم اعتماد المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"`,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/projects/${subtask.task.projectId}`);
+  return { ok: true };
+}
+
+/** The project's manager turns a proposed step away → REJECTED. */
+export async function rejectSubtask(subtaskId: string): Promise<TaskActionResult> {
+  const { viewer, subtask, membership } = await viewerOnSubtask(subtaskId);
+  if (!canApproveSubtask(membership)) return { ok: false, error: DENIED };
+  if (!subtask) return { ok: false, error: "المهمة الفرعية غير موجودة" };
+  if (subtask.approvalStatus !== "PENDING_APPROVAL")
+    return { ok: false, error: "المهمة الفرعية ليست في انتظار الاعتماد" };
+
+  await prisma.subtask.update({
+    where: { id: subtaskId },
+    data: {
+      approvalStatus: "REJECTED" as TaskApprovalStatus,
+      startedAt: null,
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      projectId: subtask.task.projectId,
+      userId: viewer.id,
+      message: `تم رفض المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"`,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/projects/${subtask.task.projectId}`);
+  return { ok: true };
+}
+
+/** The person carrying a step asks for it to be marked done. */
+export async function requestSubtaskCompletion(
+  subtaskId: string,
+  note?: string,
+): Promise<TaskActionResult> {
+  const { viewer, subtask } = await viewerOnSubtask(subtaskId);
+  if (!subtask) return { ok: false, error: "المهمة الفرعية غير موجودة" };
+  if (
+    !canRequestSubtaskCompletion(
+      viewer,
+      subtask.assigneeId,
+      subtask.task.assigneeId,
+    )
+  )
+    return { ok: false, error: DENIED };
+  if (subtask.approvalStatus !== "ACTIVE")
+    return { ok: false, error: "المهمة الفرعية غير نشطة" };
+
+  await prisma.subtask.update({
+    where: { id: subtaskId },
+    data: {
+      approvalStatus: "PENDING_COMPLETION" as TaskApprovalStatus,
+      completionNote: note?.trim() || null,
+      completionRequestedAt: new Date(),
+      startedAt: subtask.startedAt ?? new Date(),
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      projectId: subtask.task.projectId,
+      userId: viewer.id,
+      message: `طلب تسجيل إتمام المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"`,
+    },
+  });
+
+  await notifyManagersOfCompletionRequest({
+    projectId: subtask.task.projectId,
+    taskTitle: stepLabel(subtask.task.title, subtask.title),
+    requestedById: viewer.id,
+    requestedByName: viewer.name,
+    note: note?.trim() || null,
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/projects/${subtask.task.projectId}`);
+  return { ok: true };
+}
+
+/** The manager signs off a step → DONE. */
+export async function approveSubtaskCompletion(
+  subtaskId: string,
+): Promise<TaskActionResult> {
+  const { viewer, subtask, membership } = await viewerOnSubtask(subtaskId);
+  if (!canReviewSubtaskCompletion(viewer, membership))
+    return { ok: false, error: DENIED };
+  if (!subtask) return { ok: false, error: "المهمة الفرعية غير موجودة" };
+  if (subtask.approvalStatus !== "PENDING_COMPLETION")
+    return { ok: false, error: "المهمة الفرعية ليست في انتظار موافقة الإتمام" };
+
+  const now = new Date();
+  await prisma.subtask.update({
+    where: { id: subtaskId },
+    data: {
+      approvalStatus: "DONE" as TaskApprovalStatus,
+      managerApprovedAt: now,
+      completedAt: now,
+      startedAt: subtask.startedAt ?? now,
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      projectId: subtask.task.projectId,
+      userId: viewer.id,
+      message: `تمت الموافقة على إتمام المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"`,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/projects/${subtask.task.projectId}`);
+  return { ok: true };
+}
+
+/** The manager sends a step back → ACTIVE. */
+export async function rejectSubtaskCompletion(
+  subtaskId: string,
+): Promise<TaskActionResult> {
+  const { viewer, subtask, membership } = await viewerOnSubtask(subtaskId);
+  if (!canReviewSubtaskCompletion(viewer, membership))
+    return { ok: false, error: DENIED };
+  if (!subtask) return { ok: false, error: "المهمة الفرعية غير موجودة" };
+  if (subtask.approvalStatus !== "PENDING_COMPLETION")
+    return { ok: false, error: "المهمة الفرعية ليست في انتظار موافقة الإتمام" };
+
+  await prisma.subtask.update({
+    where: { id: subtaskId },
+    data: {
+      approvalStatus: "ACTIVE" as TaskApprovalStatus,
+      completionNote: null,
+      completionRequestedAt: null,
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      projectId: subtask.task.projectId,
+      userId: viewer.id,
+      message: `تم رفض إتمام المهمة الفرعية، وأُعيدت للعمل: "${stepLabel(subtask.task.title, subtask.title)}"`,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/projects/${subtask.task.projectId}`);
+  return { ok: true };
+}
+
+export async function deleteSubtask(subtaskId: string): Promise<TaskActionResult> {
+  const { viewer, subtask, membership } = await viewerOnSubtask(subtaskId);
+  if (!subtask) return { ok: false, error: "المهمة الفرعية غير موجودة" };
+  if (
+    !canDeleteSubtask(
+      viewer,
+      membership,
+      subtask.addedById,
+      subtask.approvalStatus,
+    )
+  )
+    return { ok: false, error: DENIED };
+
+  await prisma.subtask.delete({ where: { id: subtaskId } });
+
+  await prisma.activityLog.create({
+    data: {
+      projectId: subtask.task.projectId,
+      userId: viewer.id,
+      message: `تم حذف المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"`,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/projects/${subtask.task.projectId}`);
   return { ok: true };
 }
 

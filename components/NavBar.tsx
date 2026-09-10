@@ -31,14 +31,14 @@ export default function NavBar({
             <LogoMark className="block h-9 w-9 flex-none" />
             <span className="flex flex-col leading-tight">
               <span className="text-[16px] font-bold text-ink">إدارة المشاريع</span>
-              <span className="text-[11px] font-bold text-ink/55">الفريق التقني</span>
+              <span className="text-[12px] font-bold text-ink/75">الفريق التقني</span>
             </span>
           </Link>
 
           <div className="ms-auto flex items-center gap-3">
             <div className="flex flex-col items-end leading-tight">
               <span className="text-[14px] font-medium">{viewer.name}</span>
-              <span className="text-[11px] text-ink/50">
+              <span className="text-[12px] text-ink/70">
                 {ROLE_LABEL[viewer.role]}
               </span>
             </div>

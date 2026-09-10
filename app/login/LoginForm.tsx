@@ -8,7 +8,7 @@ import { login, type LoginState } from "./actions";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 
 const INPUT =
-  "w-full min-h-10 rounded-lg border border-ink/20 bg-surface px-3 py-2 text-[15px] font-medium text-ink caret-accent placeholder:text-ink/40 hover:border-ink/45 focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 transition-all";
+  "w-full min-h-10 rounded-lg border border-ink/20 bg-surface px-3 py-2 text-[15px] font-medium text-ink caret-accent placeholder:text-ink/65 hover:border-ink/45 focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20 transition-all";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -38,20 +38,20 @@ export default function LoginForm() {
           <h1 className="text-[28px] leading-tight font-bold text-ink">
             إدارة المشاريع والمهام
           </h1>
-          <p className="text-[14px] font-bold text-ink/60">لوحة تشغيل الفريق التقني</p>
+          <p className="text-[14px] font-bold text-ink/80">لوحة تشغيل الفريق التقني</p>
         </div>
 
         <div className="rounded-2xl border border-ink/12 bg-paper p-6 sm:p-8 shadow-md">
           <div className="mb-6 border-b border-ink/10 pb-4 text-center sm:text-start">
             <h2 className="text-[20px] font-bold text-ink">تسجيل الدخول</h2>
-            <p className="mt-1 text-[13px] font-medium text-ink/55">أدخل بيانات الحساب للمتابعة</p>
+            <p className="mt-1 text-[13px] font-medium text-ink/75">أدخل بيانات الحساب للمتابعة</p>
           </div>
 
           <form action={formAction} className="flex flex-col gap-5">
             <div>
               <label
                 htmlFor="email"
-                className="mb-1.5 flex items-center gap-1.5 text-[14px] font-bold text-ink/85"
+                className="mb-1.5 flex items-center gap-1.5 text-[14px] font-bold text-ink/90"
               >
                 <Mail className="h-4 w-4 text-accent" />
                 البريد الإلكتروني
@@ -71,7 +71,7 @@ export default function LoginForm() {
             <div>
               <label
                 htmlFor="password"
-                className="mb-1.5 flex items-center gap-1.5 text-[14px] font-bold text-ink/85"
+                className="mb-1.5 flex items-center gap-1.5 text-[14px] font-bold text-ink/90"
               >
                 <Lock className="h-4 w-4 text-accent" />
                 كلمة المرور
@@ -92,7 +92,7 @@ export default function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-ink/40 hover:text-ink transition"
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-ink/65 hover:text-ink transition"
                   aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
                   tabIndex={-1}
                 >

@@ -20,6 +20,7 @@ import { canRequestCompletion, type Viewer } from "@/lib/permissions";
 import type { ProjectView, TaskView } from "@/lib/view";
 import { RoleProvider, useRole, type CurrentUser } from "./RoleContext";
 import ProjectCalendar from "./ProjectCalendar";
+import SubtaskList from "./SubtaskList";
 import TeamPanel, { type UserOption } from "./TeamPanel";
 import GithubCommitsTab from "./GithubCommitsTab";
 import {
@@ -40,6 +41,7 @@ import {
   Trash2,
   Edit3,
   GitCommit,
+  History,
 } from "lucide-react";
 
 // ─── status palette ───────────────────────────────────────────────────────────
@@ -91,7 +93,9 @@ function ProjectPage({
     (m) => m.userId === currentUser.id && m.projectRole === "MANAGER",
   );
 
-  const [activeTab, setActiveTab] = useState<"tasks" | "calendar" | "team" | "github">("tasks");
+  const [activeTab, setActiveTab] = useState<
+    "tasks" | "calendar" | "team" | "activity" | "github"
+  >("tasks");
   const [addOpen, setAddOpen] = useState(false);
 
   // Date Editing state
@@ -176,7 +180,7 @@ function ProjectPage({
           {/* Back link */}
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-ink/50 transition-colors hover:bg-ink/5 hover:text-ink"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-ink/70 transition-colors hover:bg-ink/5 hover:text-ink"
           >
             <ChevronRight className="h-4 w-4" />
             المشاريع
@@ -190,11 +194,11 @@ function ProjectPage({
 
           {/* Right side */}
           <div className="ms-auto flex items-center gap-3">
-            <span className="hidden text-[13px] text-ink/40 sm:block">{viewer.name}</span>
+            <span className="hidden text-[13px] text-ink/65 sm:block">{viewer.name}</span>
             <form action={signOutAction}>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-ink/12 px-3 py-1 text-[13px] text-ink/55 transition hover:border-ink/25 hover:text-ink"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-ink/12 px-3 py-1 text-[13px] text-ink/75 transition hover:border-ink/25 hover:text-ink"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 خروج
@@ -210,7 +214,7 @@ function ProjectPage({
           <div>
             {/* Status pill */}
             <span
-              className={`mb-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium tracking-wide ${colors.pill}`}
+              className={`mb-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium tracking-wide ${colors.pill}`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} aria-hidden />
               {STATUS_LABEL[project.status]}
@@ -226,7 +230,7 @@ function ProjectPage({
 
             {/* Meta */}
             {meta && (
-              <p className="mt-2 text-[14px] leading-relaxed text-ink/45">
+              <p className="mt-2 text-[14px] leading-relaxed text-ink/70">
                 {meta}
               </p>
             )}
@@ -238,7 +242,7 @@ function ProjectPage({
               <button
                 type="button"
                 onClick={() => setEditDetailsOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-surface px-3.5 py-2 text-[13px] font-medium text-ink/70 shadow-sm transition hover:bg-paper hover:text-ink"
+                className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-surface px-3.5 py-2 text-[13px] font-medium text-ink/85 shadow-sm transition hover:bg-paper hover:text-ink"
               >
                 <Edit3 className="h-4 w-4 text-accent" />
                 تعديل بيانات المشروع
@@ -247,7 +251,7 @@ function ProjectPage({
               <button
                 type="button"
                 onClick={() => setEditDatesOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-surface px-3.5 py-2 text-[13px] font-medium text-ink/70 shadow-sm transition hover:bg-paper hover:text-ink"
+                className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-surface px-3.5 py-2 text-[13px] font-medium text-ink/85 shadow-sm transition hover:bg-paper hover:text-ink"
               >
                 <CalendarDays className="h-4 w-4 text-accent" />
                 تعديل التواريخ
@@ -258,7 +262,7 @@ function ProjectPage({
 
         {/* Note */}
         {project.note && (
-          <p className="mt-4 max-w-[56ch] text-[14px] text-pretty leading-[1.8] text-ink/60 border-s-2 border-ink/10 ps-4">
+          <p className="mt-4 max-w-[56ch] text-[14px] text-pretty leading-[1.8] text-ink/80 border-s-2 border-ink/10 ps-4">
             {project.note}
           </p>
         )}
@@ -309,6 +313,13 @@ function ProjectPage({
             count={project.members.length}
           />
           <TabButton
+            active={activeTab === "activity"}
+            onClick={() => setActiveTab("activity")}
+            icon={<History className="h-4 w-4" />}
+            label="آخر التحديثات"
+            count={project.activity.length}
+          />
+          <TabButton
             active={activeTab === "github"}
             onClick={() => setActiveTab("github")}
             icon={<GitCommit className="h-4 w-4" />}
@@ -325,10 +336,10 @@ function ProjectPage({
             {/* Tasks panel */}
             <section>
               <div className="mb-4 flex items-center gap-2.5">
-                <h2 className="text-[12px] font-medium tracking-[0.08em] text-ink/40 uppercase">
+                <h2 className="text-[13px] font-medium tracking-[0.08em] text-ink/65 uppercase">
                   قائمة المهام
                 </h2>
-                <span className="rounded-full bg-ink/6 px-2 py-0.5 text-[11px] tabular-nums text-ink/45">
+                <span className="rounded-full bg-ink/6 px-2 py-0.5 text-[12px] tabular-nums text-ink/70">
                   {totalCount}
                 </span>
                 {canAddTask && (
@@ -344,7 +355,7 @@ function ProjectPage({
               </div>
 
               {visibleTasks.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-ink/12 py-20 text-center text-[14px] text-ink/30">
+                <div className="rounded-xl border border-dashed border-ink/12 py-20 text-center text-[14px] text-ink/60">
                   لا مهام لهذا المشروع بعد.
                 </div>
               ) : (
@@ -377,26 +388,8 @@ function ProjectPage({
                 </dl>
               </SideCard>
 
-              {/* Activity card */}
-              {project.activity.length > 0 && (
-                <SideCard title="آخر التحديثات">
-                  <div className="flex flex-col divide-y divide-ink/6">
-                    {project.activity.map((a, i) => (
-                      <div key={i} className="flex gap-3 py-3 text-[13px]">
-                        <span className="w-12 shrink-0 pt-[2px] text-[11px] tabular-nums text-ink/30">{a.when}</span>
-                        <span className="leading-[1.65] text-ink/65">
-                          {a.what}
-                          {a.who && (
-                            <span className="mt-0.5 block text-[11px] text-ink/35">
-                              بواسطة {a.who}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </SideCard>
-              )}
+              {/* The feed used to sit here as a card. It has its own tab now —
+                  a sidebar column could only ever show the newest few. */}
             </aside>
           </div>
         )}
@@ -408,6 +401,8 @@ function ProjectPage({
         {activeTab === "team" && (
           <TeamPanel project={project} allUsers={allUsers} />
         )}
+
+        {activeTab === "activity" && <ActivityPanel project={project} />}
 
         {activeTab === "github" && (
           <div className="pt-6">
@@ -446,7 +441,7 @@ function ProjectPage({
               <button
                 type="button"
                 onClick={() => setEditDatesOpen(false)}
-                className="rounded-lg p-1.5 text-ink/35 hover:bg-ink/5 hover:text-ink"
+                className="rounded-lg p-1.5 text-ink/60 hover:bg-ink/5 hover:text-ink"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -454,7 +449,7 @@ function ProjectPage({
 
             <div className="flex flex-col gap-4 px-6 py-5">
               <label className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-medium text-ink/50">
+                <span className="text-[13px] font-medium text-ink/70">
                   تاريخ بداية المشروع
                 </span>
                 <input
@@ -466,7 +461,7 @@ function ProjectPage({
               </label>
 
               <label className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-medium text-ink/50">
+                <span className="text-[13px] font-medium text-ink/70">
                   تاريخ نهاية (تسليم) المشروع
                 </span>
                 <input
@@ -482,7 +477,7 @@ function ProjectPage({
               <button
                 type="button"
                 onClick={() => setEditDatesOpen(false)}
-                className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/60 transition hover:bg-ink/5"
+                className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/80 transition hover:bg-ink/5"
               >
                 إلغاء
               </button>
@@ -520,7 +515,7 @@ function ProjectPage({
               <button
                 type="button"
                 onClick={() => setEditDetailsOpen(false)}
-                className="rounded-lg p-1.5 text-ink/35 hover:bg-ink/5 hover:text-ink"
+                className="rounded-lg p-1.5 text-ink/60 hover:bg-ink/5 hover:text-ink"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -528,7 +523,7 @@ function ProjectPage({
 
             <div className="flex flex-col gap-3.5 px-6 py-5">
               <label className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-ink/50">
+                <span className="text-[13px] font-medium text-ink/70">
                   اسم المشروع <span className="text-red-400">*</span>
                 </span>
                 <input
@@ -541,7 +536,7 @@ function ProjectPage({
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-ink/50">
+                  <span className="text-[13px] font-medium text-ink/70">
                     القسم
                   </span>
                   <input
@@ -553,7 +548,7 @@ function ProjectPage({
                 </label>
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-ink/50">
+                  <span className="text-[13px] font-medium text-ink/70">
                     حالة المشروع
                   </span>
                   <select
@@ -574,7 +569,7 @@ function ProjectPage({
               </div>
 
               <label className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-ink/50">
+                <span className="text-[13px] font-medium text-ink/70">
                   رابط مستودع GitHub (مثال: https://github.com/owner/repo)
                 </span>
                 <input
@@ -587,7 +582,7 @@ function ProjectPage({
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-ink/50">
+                <span className="text-[13px] font-medium text-ink/70">
                   المسؤول عن المشروع
                 </span>
                 <select
@@ -605,7 +600,7 @@ function ProjectPage({
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-ink/50">
+                <span className="text-[13px] font-medium text-ink/70">
                   وصف أو ملاحظات المشروع
                 </span>
                 <textarea
@@ -621,7 +616,7 @@ function ProjectPage({
               <button
                 type="button"
                 onClick={() => setEditDetailsOpen(false)}
-                className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/60 transition hover:bg-ink/5"
+                className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/80 transition hover:bg-ink/5"
               >
                 إلغاء
               </button>
@@ -663,15 +658,15 @@ function TabButton({
       className={`relative inline-flex items-center gap-2 px-4 py-3 text-[14px] font-medium transition-colors ${
         active
           ? "text-accent"
-          : "text-ink/50 hover:text-ink"
+          : "text-ink/70 hover:text-ink"
       }`}
     >
       <span>{icon}</span>
       <span>{label}</span>
       {typeof count === "number" && (
         <span
-          className={`rounded-full px-2 py-0.5 text-[11px] tabular-nums ${
-            active ? "bg-accent/10 text-accent" : "bg-ink/6 text-ink/50"
+          className={`rounded-full px-2 py-0.5 text-[12px] tabular-nums ${
+            active ? "bg-accent/10 text-accent" : "bg-ink/6 text-ink/70"
           }`}
         >
           {count}
@@ -692,7 +687,7 @@ function SideCard({ title, children }: { title: string; children: React.ReactNod
   return (
     <div className="overflow-hidden rounded-xl border border-ink/10 bg-paper shadow-sm">
       <div className="border-b border-ink/8 px-5 py-3">
-        <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-ink/40">
+        <span className="text-[12px] font-medium tracking-[0.08em] uppercase text-ink/65">
           {title}
         </span>
       </div>
@@ -706,8 +701,8 @@ function SideCard({ title, children }: { title: string; children: React.ReactNod
 function Row({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
     <div className="flex items-start justify-between gap-3 py-3 text-[13px]">
-      <dt className="shrink-0 text-ink/40">{label}</dt>
-      <dd className={`text-end font-medium ${accent ?? "text-ink/80"}`}>{value}</dd>
+      <dt className="shrink-0 text-ink/65">{label}</dt>
+      <dd className={`text-end font-medium ${accent ?? "text-ink/90"}`}>{value}</dd>
     </div>
   );
 }
@@ -723,11 +718,11 @@ function Stat({ value, label, accent, warn }: {
   return (
     <div>
       <div className={`text-[36px] font-semibold leading-none tabular-nums ${
-        warn ? "text-gold-800" : accent ? "text-accent" : "text-ink/80"
+        warn ? "text-gold-800" : accent ? "text-accent" : "text-ink/90"
       }`}>
         {value}
       </div>
-      <div className="mt-1.5 text-[12px] text-ink/40">{label}</div>
+      <div className="mt-1.5 text-[13px] text-ink/65">{label}</div>
     </div>
   );
 }
@@ -752,7 +747,7 @@ function ProgressRing({ pct }: { pct: number }) {
       <text
         x="38" y="44"
         textAnchor="middle"
-        className="fill-ink text-[12px] font-semibold"
+        className="fill-ink text-[13px] font-semibold"
         style={{ fontSize: 13, transform: "rotate(90deg)", transformOrigin: "38px 38px" }}
       >
         {pct}%
@@ -790,6 +785,9 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
   const isPending           = task.approvalStatus === "PENDING_APPROVAL";
   const isPendingCompletion = task.approvalStatus === "PENDING_COMPLETION";
   const badgeClass          = APPROVAL_STATUS_TAG[task.approvalStatus];
+  /** A task with steps still open cannot be sent for completion — the same rule
+   *  app/actions.ts enforces, shown here so the button explains itself. */
+  const blockedBySteps      = task.openSubtasks > 0;
 
   return (
     <div
@@ -800,7 +798,7 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
       {/* State icon */}
       <span
         aria-hidden
-        className={`mt-[3px] grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[11px] font-medium transition-colors ${
+        className={`mt-[3px] grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[12px] font-medium transition-colors ${
           isDone
             ? "border-accent bg-accent text-white"
             : isRejected
@@ -816,28 +814,28 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
         <div className="flex flex-wrap items-baseline gap-2.5">
           <span
             className={`text-[15px] leading-snug ${
-              isDone     ? "line-through text-ink/35" :
-              isRejected ? "line-through text-ink/30" :
+              isDone     ? "line-through text-ink/60" :
+              isRejected ? "line-through text-ink/60" :
               "text-ink"
             }`}
           >
             {task.title}
           </span>
-          <span className={`rounded-full border px-2 py-[2px] text-[11px] font-medium whitespace-nowrap ${badgeClass}`}>
+          <span className={`rounded-full border px-2 py-[2px] text-[12px] font-medium whitespace-nowrap ${badgeClass}`}>
             {task.approvalStatusLabel}
           </span>
         </div>
 
         {/* Sub-meta */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
-          {who && <span className="text-ink/35">{who}</span>}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+          {who && <span className="text-ink/60">{who}</span>}
 
           {/* ── Timeline indicator ─────────────────────────────── */}
           {(task.startDate || task.startedDay || task.dueDate || task.completedDay) && (
             <span className="inline-flex items-center gap-1.5 rounded-md border border-ink/8 bg-surface px-2 py-0.5">
               {/* Start Date */}
               {(task.startDate || task.startedDay) && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-ink/60 font-medium">
+                <span className="inline-flex items-center gap-1 text-[12px] text-ink/80 font-medium">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent/60" aria-hidden />
                   <span>البداية {task.startDate || task.startedDay}</span>
                 </span>
@@ -845,18 +843,18 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
 
               {/* Separator */}
               {(task.startDate || task.startedDay) && (task.completedDay || task.dueDate) && (
-                <span className="text-ink/20 text-[10px]">—</span>
+                <span className="text-ink/20 text-[11px]">—</span>
               )}
 
               {/* Completed / Due Date */}
               {task.completedDay ? (
-                <span className="inline-flex items-center gap-1 text-[11px] text-accent font-medium">
+                <span className="inline-flex items-center gap-1 text-[12px] text-accent font-medium">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
                   <span>انتهت {task.completedDay}</span>
                 </span>
               ) : task.dueDate ? (
                 <span
-                  className={`inline-flex items-center gap-1 text-[11px] font-medium ${
+                  className={`inline-flex items-center gap-1 text-[12px] font-medium ${
                     task.dueDate < new Date().toISOString().slice(0, 10)
                       ? "text-red-500"
                       : "text-gold-800"
@@ -877,9 +875,16 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
           )}
 
           {task.completionNote && isPendingCompletion && (
-            <span className="text-[12px] italic text-ink/35">"{task.completionNote}"</span>
+            <span className="text-[13px] italic text-ink/60">"{task.completionNote}"</span>
           )}
         </div>
+
+        {/* Steps */}
+        <SubtaskList
+          task={task}
+          isProjectManager={isProjectManager}
+          projectMembers={projectMembers}
+        />
       </div>
 
       {/* Actions */}
@@ -892,14 +897,21 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
         )}
 
         {task.approvalStatus === "ACTIVE" && canRequestCompletion(currentUser, task.assigneeId) && (
-          showNoteInput ? (
+          blockedBySteps ? (
+            <span
+              title={`يتبقى ${task.openSubtasks} مهمة فرعية`}
+              className="cursor-not-allowed rounded-lg border border-ink/10 px-2.5 py-0.5 text-[13px] font-medium text-ink/55"
+            >
+              تسجيل إتمام
+            </span>
+          ) : showNoteInput ? (
             <>
               <input
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="ملاحظة..."
-                className="w-28 rounded-lg border border-ink/20 bg-white px-2 py-0.5 text-[12px] outline-none focus:border-accent"
+                className="w-28 rounded-lg border border-ink/20 bg-white px-2 py-0.5 text-[13px] outline-none focus:border-accent"
                 autoFocus
               />
               <Pill label="تأكيد" variant="accept" onClick={() => run(async () => {
@@ -927,7 +939,7 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
             title="تعديل المهمة"
             onClick={() => setEditOpen(true)}
             aria-label={`تعديل: ${task.title}`}
-            className="ms-1 rounded p-1 text-[12px] text-ink/15 opacity-0 transition-all hover:text-accent group-hover:opacity-100"
+            className="ms-1 rounded p-1 text-[13px] text-ink/15 opacity-0 transition-all hover:text-accent group-hover:opacity-100"
           >
             <Edit3 className="h-3.5 w-3.5" />
           </button>
@@ -939,7 +951,7 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
             title="حذف المهمة"
             onClick={() => run(() => deleteTask(task.id))}
             aria-label={`حذف: ${task.title}`}
-            className="ms-1 rounded p-1 text-[12px] text-ink/15 opacity-0 transition-all hover:text-red-400 group-hover:opacity-100"
+            className="ms-1 rounded p-1 text-[13px] text-ink/15 opacity-0 transition-all hover:text-red-400 group-hover:opacity-100"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -958,6 +970,85 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
   );
 }
 
+// ─── Activity panel ───────────────────────────────────────────────────────────
+
+/**
+ * The project's feed, as a tab of its own. It read as a sidebar card before,
+ * which capped it at whatever fits a 280px column beside the task list; given
+ * the full width it can run as a timeline and show the whole history the query
+ * returns.
+ */
+function ActivityPanel({ project }: { project: ProjectView }) {
+  return (
+    <div className="flex flex-col gap-6 pt-6">
+      {/* Header bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <History className="h-5 w-5 text-accent" />
+            <h3 className="text-[18px] font-semibold text-ink">آخر التحديثات</h3>
+          </div>
+          <p className="mt-1 text-[13px] text-ink/70">
+            كل ما جرى على المشروع، الأحدث أولاً
+          </p>
+        </div>
+        {project.activity.length > 0 && (
+          <span className="rounded-full bg-ink/6 px-2.5 py-0.5 text-[13px] tabular-nums text-ink/70">
+            {project.activity.length}
+          </span>
+        )}
+      </div>
+
+      {project.activity.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-ink/15 py-14 text-center text-[14px] text-ink/60">
+          لا تحديثات على هذا المشروع بعد.
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-ink/10 bg-paper shadow-sm">
+          <div className="divide-y divide-ink/6">
+            {project.activity.map((a, i) => (
+              <div
+                key={i}
+                className="flex gap-4 px-6 py-4 transition hover:bg-ink/[0.015]"
+              >
+                {/* Timeline rail */}
+                <div className="flex flex-col items-center pt-[6px]">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      i === 0 ? "bg-accent" : "bg-ink/20"
+                    }`}
+                    aria-hidden
+                  />
+                  {i !== project.activity.length - 1 && (
+                    <span className="mt-1 w-px flex-1 bg-ink/10" aria-hidden />
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] leading-[1.7] text-ink/90">
+                    {a.what}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2.5 text-[13px] text-ink/60">
+                    <span className="tabular-nums">{a.when}</span>
+                    {a.who && (
+                      <>
+                        <span aria-hidden className="text-ink/15">
+                          ·
+                        </span>
+                        <span>بواسطة {a.who}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Pill button ──────────────────────────────────────────────────────────────
 
 function Pill({ label, variant, onClick }: {
@@ -968,13 +1059,13 @@ function Pill({ label, variant, onClick }: {
   const cls = {
     accept:  "border-accent/30 bg-accent/8 text-accent hover:bg-accent hover:text-white hover:border-accent",
     reject:  "border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
-    neutral: "border-ink/12 bg-transparent text-ink/50 hover:bg-ink/5",
+    neutral: "border-ink/12 bg-transparent text-ink/70 hover:bg-ink/5",
   }[variant];
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-2.5 py-0.5 text-[12px] font-medium transition-all ${cls}`}
+      className={`rounded-lg border px-2.5 py-0.5 text-[13px] font-medium transition-all ${cls}`}
     >
       {label}
     </button>
@@ -1023,7 +1114,7 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-[13px] text-ink/35 transition hover:bg-ink/6 hover:text-ink"
+            className="rounded-lg p-1.5 text-[13px] text-ink/60 transition hover:bg-ink/6 hover:text-ink"
             aria-label="إغلاق"
           >
             <X className="h-4 w-4" />
@@ -1033,7 +1124,7 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
         {/* Body */}
         <div className="flex flex-col gap-4 px-6 pb-5">
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] text-ink/50">
+            <span className="text-[13px] text-ink/70">
               عنوان المهمة <span className="text-red-400">*</span>
             </span>
             <input
@@ -1043,12 +1134,12 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
               onKeyDown={(e) => { if (e.key === "Enter" && !pending) submit(); }}
               placeholder="اكتب عنوان المهمة…"
               autoFocus
-              className="w-full rounded-xl border border-ink/15 bg-paper px-4 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-ink/25 focus:border-accent focus:ring-2 focus:ring-accent/12"
+              className="w-full rounded-xl border border-ink/15 bg-paper px-4 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-ink/55 focus:border-accent focus:ring-2 focus:ring-accent/12"
             />
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] text-ink/50">تكليف عضو (اختياري)</span>
+            <span className="text-[13px] text-ink/70">تكليف عضو (اختياري)</span>
             <select
               value={assigneeId}
               onChange={(e) => setAssigneeId(e.target.value)}
@@ -1065,7 +1156,7 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
 
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] text-ink/50">تاريخ البداية (اختياري)</span>
+              <span className="text-[13px] text-ink/70">تاريخ البداية (اختياري)</span>
               <input
                 type="date"
                 value={startDate}
@@ -1075,7 +1166,7 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
             </label>
 
             <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] text-ink/50">تاريخ النهاية / الموعد (اختياري)</span>
+              <span className="text-[13px] text-ink/70">تاريخ النهاية / الموعد (اختياري)</span>
               <input
                 type="date"
                 value={dueDate}
@@ -1085,12 +1176,12 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
             </label>
           </div>
 
-          <p className="rounded-xl border border-gold-600/15 bg-gold-100 px-4 py-3 text-[12px] leading-relaxed text-gold-800">
+          <p className="rounded-xl border border-gold-600/15 bg-gold-100 px-4 py-3 text-[13px] leading-relaxed text-gold-800">
             ستُضاف المهمة في حالة «انتظار الاعتماد» ريثما يوافق عليها المسؤول.
           </p>
 
           {error && (
-            <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-[12px] text-red-600">
+            <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-[13px] text-red-600">
               {error}
             </p>
           )}
@@ -1101,7 +1192,7 @@ function AddTaskModal({ project, onClose }: { project: ProjectView; onClose: () 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/55 transition hover:bg-ink/5"
+            className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/75 transition hover:bg-ink/5"
           >
             إلغاء
           </button>
@@ -1170,7 +1261,7 @@ function EditTaskModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-ink/35 transition hover:bg-ink/6 hover:text-ink"
+            className="rounded-lg p-1.5 text-ink/60 transition hover:bg-ink/6 hover:text-ink"
             aria-label="إغلاق"
           >
             <X className="h-4 w-4" />
@@ -1182,7 +1273,7 @@ function EditTaskModal({
 
           {/* Title */}
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-medium text-ink/50">
+            <span className="text-[13px] font-medium text-ink/70">
               عنوان المهمة <span className="text-red-400">*</span>
             </span>
             <input
@@ -1191,13 +1282,13 @@ function EditTaskModal({
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !pending) submit(); }}
               autoFocus
-              className="w-full rounded-xl border border-ink/15 bg-paper px-4 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-ink/25 focus:border-accent focus:ring-2 focus:ring-accent/12"
+              className="w-full rounded-xl border border-ink/15 bg-paper px-4 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-ink/55 focus:border-accent focus:ring-2 focus:ring-accent/12"
             />
           </label>
 
           {/* Assignee */}
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-medium text-ink/50">العضو المكلف</span>
+            <span className="text-[13px] font-medium text-ink/70">العضو المكلف</span>
             <select
               value={assigneeId}
               onChange={(e) => setAssigneeId(e.target.value)}
@@ -1215,7 +1306,7 @@ function EditTaskModal({
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] font-medium text-ink/50">تاريخ البداية</span>
+              <span className="text-[13px] font-medium text-ink/70">تاريخ البداية</span>
               <input
                 type="date"
                 value={startDate}
@@ -1225,7 +1316,7 @@ function EditTaskModal({
             </label>
 
             <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] font-medium text-ink/50">تاريخ النهاية / الموعد</span>
+              <span className="text-[13px] font-medium text-ink/70">تاريخ النهاية / الموعد</span>
               <input
                 type="date"
                 value={dueDate}
@@ -1236,7 +1327,7 @@ function EditTaskModal({
           </div>
 
           {error && (
-            <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-[12px] text-red-600">
+            <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-[13px] text-red-600">
               {error}
             </p>
           )}
@@ -1247,7 +1338,7 @@ function EditTaskModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/55 transition hover:bg-ink/5"
+            className="rounded-xl border border-ink/12 px-4 py-2 text-[14px] text-ink/75 transition hover:bg-ink/5"
           >
             إلغاء
           </button>

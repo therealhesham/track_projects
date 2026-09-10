@@ -6,7 +6,7 @@ import Button from "./ui/Button";
 export type Draft = { name: string; dept: string; due: string };
 
 const INPUT =
-  "w-full min-h-9 rounded-md border border-ink/16 bg-surface px-2.5 py-1.5 text-[15px] text-ink caret-accent placeholder:text-ink/65 hover:border-ink/45 focus-visible:border-accent focus-visible:outline-offset-0";
+  "w-full min-h-9 rounded-md border border-ink/16 bg-surface px-2.5 py-1.5 text-[15px] text-ink caret-accent placeholder:text-ink/85 hover:border-ink/45 focus-visible:border-accent focus-visible:outline-offset-0";
 
 const FIELDS: {
   key: keyof Draft;
@@ -70,7 +70,7 @@ export default function NewProjectDialog({
           <div key={field.key}>
             <label
               htmlFor={`np-${field.key}`}
-              className="mb-[5px] block text-[13px] text-ink/70"
+              className="mb-[5px] block text-[13px] text-ink/85"
             >
               {field.label}
             </label>

@@ -208,12 +208,12 @@ export default function GithubCommitsTab({
                   مستودع الكود على GitHub
                 </h3>
                 {repoInfo && (
-                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">
+                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[12px] font-semibold text-emerald-600">
                     متصل
                   </span>
                 )}
               </div>
-              <p className="mt-0.5 text-[12px] text-ink/50">
+              <p className="mt-0.5 text-[13px] text-ink/70">
                 {repoInfo
                   ? `${repoInfo.owner}/${repoInfo.repo}`
                   : "ربط المشروع بمستودع GitHub لعرض أحدث الـ Commits وتحديثات الكود تلقائياً"}
@@ -227,7 +227,7 @@ export default function GithubCommitsTab({
                 href={`https://github.com/${repoInfo.owner}/${repoInfo.repo}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-paper px-3.5 py-2 text-[12px] font-semibold text-ink transition hover:bg-ink/5"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-paper px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-ink/5"
               >
                 <span>فتح في GitHub</span>
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -238,7 +238,7 @@ export default function GithubCommitsTab({
               <button
                 type="button"
                 onClick={() => setEditingUrl(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-paper px-3.5 py-2 text-[12px] font-semibold text-ink transition hover:bg-ink/5"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-paper px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-ink/5"
               >
                 <Edit3 className="h-3.5 w-3.5" />
                 <span>تعديل الرابط</span>
@@ -250,12 +250,12 @@ export default function GithubCommitsTab({
         {/* ── Edit / Input URL Form ── */}
         {(editingUrl || !githubUrl) && (
           <div className="mt-4 flex flex-col gap-3 border-t border-ink/8 pt-4">
-            <label className="text-[12px] font-medium text-ink/60">
+            <label className="text-[13px] font-medium text-ink/80">
               أدخل رابط مستودع GitHub الخاص بالمشروع:
             </label>
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative flex-1 min-w-[260px]">
-                <Link2 className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35 pointer-events-none" />
+                <Link2 className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/60 pointer-events-none" />
                 <input
                   type="text"
                   value={inputUrl}
@@ -282,7 +282,7 @@ export default function GithubCommitsTab({
                     setInputUrl(githubUrl);
                     setEditingUrl(false);
                   }}
-                  className="rounded-xl border border-ink/15 px-3.5 py-2 text-[12px] font-medium text-ink/60 hover:bg-ink/5"
+                  className="rounded-xl border border-ink/15 px-3.5 py-2 text-[13px] font-medium text-ink/80 hover:bg-ink/5"
                 >
                   إلغاء
                 </button>
@@ -299,7 +299,7 @@ export default function GithubCommitsTab({
           <div className="flex flex-wrap items-center justify-between gap-3">
             {/* Search Box */}
             <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35 pointer-events-none" />
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/60 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
@@ -311,12 +311,12 @@ export default function GithubCommitsTab({
 
             <div className="flex items-center gap-2">
               {/* Branch Selector */}
-              <div className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-paper px-3 py-1.5 text-[12px] font-semibold text-ink">
+              <div className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-paper px-3 py-1.5 text-[13px] font-semibold text-ink">
                 <GitBranch className="h-3.5 w-3.5 text-accent" />
                 <select
                   value={branch}
                   onChange={(e) => setBranch(e.target.value)}
-                  className="bg-transparent font-mono text-[12px] text-ink outline-none cursor-pointer"
+                  className="bg-transparent font-mono text-[13px] text-ink outline-none cursor-pointer"
                 >
                   <option value="main">main</option>
                   <option value="master">master</option>
@@ -329,7 +329,7 @@ export default function GithubCommitsTab({
                 type="button"
                 onClick={fetchCommits}
                 disabled={loading}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-paper px-3.5 py-2 text-[12px] font-semibold text-ink transition hover:bg-ink/5 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-paper px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-ink/5 disabled:opacity-50"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-accent" : ""}`} />
                 <span>تحديث</span>
@@ -398,20 +398,20 @@ export default function GithubCommitsTab({
                         </a>
 
                         {body && (
-                          <p className="mt-1 text-[12px] text-ink/60 whitespace-pre-wrap font-mono bg-ink/5 p-2 rounded-lg leading-relaxed max-h-24 overflow-y-auto">
+                          <p className="mt-1 text-[13px] text-ink/80 whitespace-pre-wrap font-mono bg-ink/5 p-2 rounded-lg leading-relaxed max-h-24 overflow-y-auto">
                             {body}
                           </p>
                         )}
 
-                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-ink/50">
-                          <span className="inline-flex items-center gap-1 font-semibold text-ink/75">
-                            <User className="h-3.5 w-3.5 text-ink/40" />
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[13px] text-ink/70">
+                          <span className="inline-flex items-center gap-1 font-semibold text-ink/90">
+                            <User className="h-3.5 w-3.5 text-ink/65" />
                             {authorName}
                           </span>
 
                           {relativeTime && (
                             <span className="inline-flex items-center gap-1">
-                              <Calendar className="h-3.5 w-3.5 text-ink/40" />
+                              <Calendar className="h-3.5 w-3.5 text-ink/65" />
                               {relativeTime}
                             </span>
                           )}
@@ -425,14 +425,14 @@ export default function GithubCommitsTab({
                         type="button"
                         onClick={() => copyToClipboard(shortSha)}
                         title="نسخ رقم الـ Commit"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-ink/15 bg-paper px-2.5 py-1 font-mono text-[12px] font-bold text-ink transition hover:bg-ink/5"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-ink/15 bg-paper px-2.5 py-1 font-mono text-[13px] font-bold text-ink transition hover:bg-ink/5"
                       >
                         <GitCommit className="h-3.5 w-3.5 text-accent" />
                         <span>{shortSha}</span>
                         {copiedSha === shortSha ? (
                           <Check className="h-3 w-3 text-emerald-500" />
                         ) : (
-                          <Copy className="h-3 w-3 text-ink/40" />
+                          <Copy className="h-3 w-3 text-ink/65" />
                         )}
                       </button>
 
@@ -440,7 +440,7 @@ export default function GithubCommitsTab({
                         href={item.html_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-ink/15 text-ink/60 transition hover:bg-ink/5 hover:text-ink"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-ink/15 text-ink/80 transition hover:bg-ink/5 hover:text-ink"
                         title="عرض التغييرات على GitHub"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
@@ -455,9 +455,9 @@ export default function GithubCommitsTab({
           {/* Empty Commits State */}
           {!loading && !error && filteredCommits.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-ink/10 bg-paper py-14 text-center">
-              <Code2 className="h-10 w-10 text-ink/30 mb-2" />
+              <Code2 className="h-10 w-10 text-ink/60 mb-2" />
               <h4 className="text-[15px] font-bold text-ink">لا توجد Commits للعرض</h4>
-              <p className="mt-1 text-[12px] text-ink/50">
+              <p className="mt-1 text-[13px] text-ink/70">
                 {searchQuery ? "لم يتم العثور على نتائج تطابق البحث" : "المستودع قد يكون فارغاً أو في فرع آخر."}
               </p>
             </div>

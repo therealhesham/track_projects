@@ -14,7 +14,7 @@ export default function StatusTag({
 }) {
   const chip = (
     <span
-      className={`inline-flex items-center rounded-sm px-2.5 py-[3px] text-[12px] tracking-[0.02em] ${STATUS_TAG[status]} ${className}`}
+      className={`inline-flex items-center rounded-sm px-2.5 py-[3px] text-[13px] tracking-[0.02em] ${STATUS_TAG[status]} ${className}`}
     >
       {STATUS_LABEL[status]}
     </span>

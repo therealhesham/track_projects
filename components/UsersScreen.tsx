@@ -50,7 +50,7 @@ export default function UsersScreen({ users }: { users: UserCardView[] }) {
           <h1 className="mt-2.5 text-[27px] leading-[1.25] font-bold text-ink">
             المستخدمون ومشاريعهم
           </h1>
-          <p className="mt-1.5 text-[14px] text-ink/60">
+          <p className="mt-1.5 text-[14px] text-ink/80">
             {users.length} حساب · {activeCount} نشط
             {unassigned > 0 && ` · ${unassigned} بلا مشاريع`}
           </p>
@@ -58,21 +58,21 @@ export default function UsersScreen({ users }: { users: UserCardView[] }) {
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-ink/35" />
+            <Search className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-ink/60" />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="ابحث باسم أو بريد أو مشروع…"
               aria-label="بحث في المستخدمين"
-              className="w-[280px] rounded-md border border-ink/16 bg-paper py-[7px] pe-8 ps-9 text-[14px] text-ink outline-none transition placeholder:text-ink/35 focus:border-accent"
+              className="w-[280px] rounded-md border border-ink/16 bg-paper py-[7px] pe-8 ps-9 text-[14px] text-ink outline-none transition placeholder:text-ink/60 focus:border-accent"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="مسح البحث"
-                className="absolute inset-y-0 end-2 my-auto h-5 w-5 cursor-pointer rounded-sm text-ink/35 transition hover:text-ink"
+                className="absolute inset-y-0 end-2 my-auto h-5 w-5 cursor-pointer rounded-sm text-ink/60 transition hover:text-ink"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -91,7 +91,7 @@ export default function UsersScreen({ users }: { users: UserCardView[] }) {
       </div>
 
       {shown.length === 0 ? (
-        <p className="pt-16 text-center text-[15px] text-ink/55">
+        <p className="pt-16 text-center text-[15px] text-ink/75">
           لا مستخدمين مطابقين لهذا البحث.
         </p>
       ) : (
@@ -135,15 +135,15 @@ function UserCard({ user }: { user: UserCardView }) {
               {user.roleLabel}
             </span>
             {!user.isActive && (
-              <span className="inline-flex items-center rounded-sm border border-ink/12 px-2 py-[2px] text-[11.5px] text-ink/55">
+              <span className="inline-flex items-center rounded-sm border border-ink/12 px-2 py-[2px] text-[11.5px] text-ink/75">
                 معطّل
               </span>
             )}
           </div>
-          <p className="mt-0.5 truncate text-[13px] text-ink/55" title={user.email}>
+          <p className="mt-0.5 truncate text-[13px] text-ink/75" title={user.email}>
             {user.email}
           </p>
-          <p className="text-[12px] text-ink/45">
+          <p className="text-[13px] text-ink/70">
             {user.department ?? "بلا قسم"} · انضم {user.joined}
           </p>
         </div>
@@ -160,7 +160,7 @@ function UserCard({ user }: { user: UserCardView }) {
         <SectionLabel>المشاريع</SectionLabel>
 
         {user.projects.length === 0 ? (
-          <p className="pt-3 pb-1 text-[13.5px] text-ink/45">
+          <p className="pt-3 pb-1 text-[13.5px] text-ink/70">
             لم يُسند إلى أي مشروع بعد.
           </p>
         ) : (
@@ -180,7 +180,7 @@ function UserCard({ user }: { user: UserCardView }) {
                     <StatusTag status={p.status} className="ms-auto flex-none" />
                   </div>
 
-                  <div className="mt-1 flex items-center gap-2.5 text-[12px] text-ink/55">
+                  <div className="mt-1 flex items-center gap-2.5 text-[13px] text-ink/75">
                     <span className="text-accent-600">{p.relationLabel}</span>
                     <span aria-hidden className="h-3 w-px bg-ink/12" />
                     <span className="tabular-nums">
@@ -216,7 +216,7 @@ function Figure({
       <div className={`text-[18px] leading-none font-bold tabular-nums ${tone}`}>
         {value}
       </div>
-      <div className="mt-1 text-[11.5px] font-bold tracking-[0.02em] text-ink/60">
+      <div className="mt-1 text-[11.5px] font-bold tracking-[0.02em] text-ink/80">
         {label}
       </div>
     </div>

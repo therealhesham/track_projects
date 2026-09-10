@@ -82,7 +82,7 @@ export default function Dashboard({
           />
         ) : projects.length === 0 ? (
           <div className="shell pt-16 text-center">
-            <p className="text-[15px] text-ink/55">
+            <p className="text-[15px] text-ink/75">
               لا توجد مشاريع بعد. اضغط «مشروع جديد» للبدء.
             </p>
           </div>

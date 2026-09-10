@@ -80,12 +80,12 @@ function dailySpans(dailyTasks: DailyTaskView[]): CalendarSpan[] {
 /** The label that tells the two sources apart at a glance. */
 function SourceChip({ span }: { span: CalendarSpan }) {
   return span.projectName ? (
-    <span className="inline-flex items-center gap-1 text-[11px] text-ink/50 font-medium">
+    <span className="inline-flex items-center gap-1 text-[12px] text-ink/70 font-medium">
       <FolderKanban className="h-3 w-3" />
       {span.projectName}
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-accent">
+    <span className="inline-flex items-center gap-1 text-[12px] font-medium text-accent">
       <Sun className="h-3 w-3" />
       مهمة يومية
     </span>
@@ -102,7 +102,7 @@ function SpanRow({ span }: { span: CalendarSpan }) {
     <div className="flex flex-col gap-1.5 py-3">
       <div className="flex items-center justify-between gap-2">
         <span
-          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${cfg.dotBg}`} />
           {cfg.label}
@@ -115,27 +115,27 @@ function SpanRow({ span }: { span: CalendarSpan }) {
         {span.title}
       </p>
 
-      <div className="flex flex-col gap-1 text-[12px] text-ink/55 pt-1">
+      <div className="flex flex-col gap-1 text-[13px] text-ink/75 pt-1">
         {isDaily ? (
           <div className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5 text-ink/35" />
+            <Clock className="h-3.5 w-3.5 text-ink/60" />
             <span>اليوم: <strong>{span.startDay}</strong></span>
           </div>
         ) : (
           <>
             <div className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-ink/35" />
+              <Clock className="h-3.5 w-3.5 text-ink/60" />
               <span>تاريخ البداية: <strong>{span.startDay}</strong></span>
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-ink/35" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-ink/60" />
               <span>تاريخ النهاية / الموعد: <strong>{span.endDay}</strong></span>
             </div>
           </>
         )}
         {span.owner && (
           <div className="flex items-center gap-1.5">
-            <User className="h-3.5 w-3.5 text-ink/35" />
+            <User className="h-3.5 w-3.5 text-ink/60" />
             <span>المسؤول: {span.owner}</span>
           </div>
         )}
@@ -221,17 +221,17 @@ export default function CalendarScreen({
           <Calendar className="h-6 w-6 text-accent" />
           <h2 className="text-[22px] font-semibold text-ink">{grid.label}</h2>
           {isSuperAdmin ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-0.5 text-[12px] font-medium text-accent">
+            <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-0.5 text-[13px] font-medium text-accent">
               <Shield className="h-3.5 w-3.5" />
               عرض كافة المشاريع (مدير عام)
             </span>
           ) : isManager ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold-100 px-2.5 py-0.5 text-[12px] font-medium text-gold-800">
+            <span className="inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold-100 px-2.5 py-0.5 text-[13px] font-medium text-gold-800">
               <Shield className="h-3.5 w-3.5" />
               مشاريعي ومهام فريقي
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full border border-ink/10 bg-ink/6 px-2.5 py-0.5 text-[12px] font-medium text-ink/60">
+            <span className="inline-flex items-center gap-1 rounded-full border border-ink/10 bg-ink/6 px-2.5 py-0.5 text-[13px] font-medium text-ink/80">
               <User className="h-3.5 w-3.5" />
               مهامي الخاصة فقط
             </span>
@@ -242,7 +242,7 @@ export default function CalendarScreen({
           <button
             type="button"
             onClick={resetToToday}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-ink/12 bg-paper px-3 py-1.5 text-[12px] font-medium text-ink/70 transition hover:bg-ink/5 me-2"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-ink/12 bg-paper px-3 py-1.5 text-[13px] font-medium text-ink/85 transition hover:bg-ink/5 me-2"
           >
             <CalendarDays className="h-3.5 w-3.5" />
             اليوم
@@ -252,7 +252,7 @@ export default function CalendarScreen({
             <button
               type="button"
               onClick={prevMonth}
-              className="rounded-lg border border-ink/12 p-2 text-ink/60 transition hover:bg-ink/5 hover:text-ink"
+              className="rounded-lg border border-ink/12 p-2 text-ink/80 transition hover:bg-ink/5 hover:text-ink"
               aria-label="الشهر السابق"
             >
               <ChevronRight className="h-4 w-4" />
@@ -260,7 +260,7 @@ export default function CalendarScreen({
             <button
               type="button"
               onClick={nextMonth}
-              className="rounded-lg border border-ink/12 p-2 text-ink/60 transition hover:bg-ink/5 hover:text-ink"
+              className="rounded-lg border border-ink/12 p-2 text-ink/80 transition hover:bg-ink/5 hover:text-ink"
               aria-label="الشهر التالي"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -270,12 +270,12 @@ export default function CalendarScreen({
       </div>
 
       {/* Status Color Legend */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-ink/8 bg-paper px-5 py-2.5 text-[12px]">
-        <span className="font-medium text-ink/50 me-1">حالات المهام:</span>
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-ink/8 bg-paper px-5 py-2.5 text-[13px]">
+        <span className="font-medium text-ink/70 me-1">حالات المهام:</span>
         {(Object.keys(TASK_STATUS_CONFIG) as TaskApprovalStatus[]).map((st) => {
           const cfg = TASK_STATUS_CONFIG[st];
           return (
-            <span key={st} className="inline-flex items-center gap-1.5 text-ink/70">
+            <span key={st} className="inline-flex items-center gap-1.5 text-ink/85">
               <span className={`h-2.5 w-2.5 rounded-full ${cfg.dotBg}`} />
               <span>{cfg.label}</span>
             </span>
@@ -292,7 +292,7 @@ export default function CalendarScreen({
             {WEEKDAYS.map((wd) => (
               <div
                 key={wd}
-                className="py-3 text-[12px] font-medium uppercase text-ink/50"
+                className="py-3 text-[13px] font-medium uppercase text-ink/70"
               >
                 {wd}
               </div>
@@ -334,12 +334,12 @@ export default function CalendarScreen({
                 >
                   <div className="flex items-center justify-between">
                     <span
-                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-medium tabular-nums ${
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-medium tabular-nums ${
                         isToday
                           ? "bg-accent text-white font-bold"
                           : isSelected
                           ? "bg-ink/10 font-semibold text-ink"
-                          : "text-ink/70"
+                          : "text-ink/85"
                       }`}
                     >
                       {dayNum}
@@ -357,7 +357,7 @@ export default function CalendarScreen({
                       return (
                         <div
                           key={span.id}
-                          className={`relative flex items-center gap-1 py-0.5 text-[10px] font-medium transition-all ${cfg.bg} ${cfg.text} ${cfg.border} ${
+                          className={`relative flex items-center gap-1 py-0.5 text-[11px] font-medium transition-all ${cfg.bg} ${cfg.text} ${cfg.border} ${
                             isSingle
                               ? "rounded-md border px-1.5"
                               : isStart
@@ -395,7 +395,7 @@ export default function CalendarScreen({
                           onSelectDay(dayYmd);
                           setModalDay(dayYmd);
                         }}
-                        className="cursor-pointer text-[10px] font-medium text-ink/40 underline-offset-2 transition hover:text-accent hover:underline"
+                        className="cursor-pointer text-[11px] font-medium text-ink/65 underline-offset-2 transition hover:text-accent hover:underline"
                       >
                         +{daySpans.length - 3} المزيد
                       </span>
@@ -410,9 +410,9 @@ export default function CalendarScreen({
         {/* Selected Day Details Panel */}
         <div className="flex flex-col gap-4">
           <div className="rounded-xl border border-ink/10 bg-paper p-5 shadow-sm">
-            <div className="flex items-center gap-1.5 text-ink/40">
+            <div className="flex items-center gap-1.5 text-ink/65">
               <Calendar className="h-4 w-4" />
-              <h4 className="text-[12px] font-medium uppercase tracking-wide">
+              <h4 className="text-[13px] font-medium uppercase tracking-wide">
                 تفاصيل اليوم والمهام النشطة
               </h4>
             </div>
@@ -422,7 +422,7 @@ export default function CalendarScreen({
 
             <div className="mt-4 flex flex-col divide-y divide-ink/6">
               {selectedDaySpans.length === 0 ? (
-                <p className="py-6 text-center text-[13px] text-ink/35">
+                <p className="py-6 text-center text-[13px] text-ink/60">
                   لا توجد مهام نشطة في هذا اليوم.
                 </p>
               ) : (
@@ -453,7 +453,7 @@ export default function CalendarScreen({
                   <h3 className="text-[16px] font-semibold text-ink">
                     {formatDayTitle(modalDay)}
                   </h3>
-                  <span className="text-[12px] text-ink/45">
+                  <span className="text-[13px] text-ink/70">
                     {modalDaySpans.length} مهمة نشطة في هذا اليوم
                   </span>
                 </div>
@@ -462,7 +462,7 @@ export default function CalendarScreen({
                 type="button"
                 onClick={() => setModalDay(null)}
                 aria-label="إغلاق"
-                className="rounded-lg p-1.5 text-ink/35 transition hover:bg-ink/5 hover:text-ink"
+                className="rounded-lg p-1.5 text-ink/60 transition hover:bg-ink/5 hover:text-ink"
               >
                 <X className="h-4 w-4" />
               </button>
