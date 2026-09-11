@@ -54,10 +54,13 @@ export default function SubtaskList({
   const [open, setOpen] = useState(task.openSubtasks > 0);
   const [adding, setAdding] = useState(false);
 
+  // Mirrors the gates in `addSubtask`: a finished task has nowhere to put a
+  // step, and one waiting on a manager would have its request invalidated.
   const canAdd =
     canAddSubtask(currentUser, membership, task.assigneeId) &&
     task.approvalStatus !== "DONE" &&
-    task.approvalStatus !== "REJECTED";
+    task.approvalStatus !== "REJECTED" &&
+    task.approvalStatus !== "PENDING_COMPLETION";
 
   // Nothing to show and nothing this viewer could add: render no chrome at all.
   if (task.subtasks.length === 0 && !canAdd) return null;

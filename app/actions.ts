@@ -623,6 +623,20 @@ export async function approveCompletion(taskId: string): Promise<TaskActionResul
   if (task.approvalStatus !== "PENDING_COMPLETION")
     return { ok: false, error: "المهمة ليست في انتظار موافقة الإتمام" };
 
+  // Checked again here, not just in `requestCompletion`. A step can appear
+  // between the request and this sign-off, and the request's gate has already
+  // run by then — this is the last point before the task counts as done.
+  const subtasks = await prisma.subtask.findMany({
+    where: { taskId },
+    select: { approvalStatus: true },
+  });
+  const open = openSubtaskCount(subtasks);
+  if (open > 0)
+    return {
+      ok: false,
+      error: `لا يمكن اعتماد إتمام المهمة قبل إنهاء مهامها الفرعية (${open} متبقية)`,
+    };
+
   const now = new Date();
   await prisma.task.update({
     where: { id: taskId },
@@ -739,6 +753,16 @@ export async function addSubtask(input: {
   // off, are work with nowhere to go.
   if (task.approvalStatus === "DONE" || task.approvalStatus === "REJECTED")
     return { ok: false, error: "لا يمكن إضافة مهام فرعية لمهمة منتهية" };
+
+  // Nor while the task is waiting on a manager: its completion request was
+  // made against the steps as they stood, and a step added now would silently
+  // invalidate it. Send the request back first — that returns the task to
+  // ACTIVE, where steps may be added again.
+  if (task.approvalStatus === "PENDING_COMPLETION")
+    return {
+      ok: false,
+      error: "المهمة في انتظار اعتماد الإتمام — أعِدها للعمل أولاً لإضافة خطوات",
+    };
 
   const approved = subtaskStartsApproved(viewer, membership);
 
