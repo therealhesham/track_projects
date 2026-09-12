@@ -119,8 +119,10 @@ export default function TaskTimeline({ project }: { project: ProjectView }) {
       : null;
 
   const scrollToToday = () => {
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     todayMarker.current?.scrollIntoView({
-      behavior: "smooth",
+      behavior: calm ? "auto" : "smooth",
+      // `nearest` so jumping across the months does not also drag the page up.
       block: "nearest",
       inline: "center",
     });
