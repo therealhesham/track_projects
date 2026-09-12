@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { updateProjectGithubUrl } from "@/app/actions";
+import { formatDateTime } from "@/lib/calendar";
 import {
   GitCommit,
   GitBranch,
@@ -72,24 +73,15 @@ export function parseGithubRepo(url: string | null): { owner: string; repo: stri
   return null;
 }
 
-function formatArabicRelativeTime(dateStr: string): string {
+/**
+ * The commit list used to say "قبل 3 أيام". It now prints the moment in full,
+ * through the same `formatDateTime` the activity feed uses — a run of commits
+ * pushed the same afternoon all read as "قبل 3 أيام" otherwise.
+ */
+function formatCommitDate(dateStr: string): string {
   const date = new Date(dateStr);
-  const now = new Date();
-  const diffSecs = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffSecs < 60) return "الآن";
-  const mins = Math.floor(diffSecs / 60);
-  if (mins < 60) return `قبل ${mins} دقيقة`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `قبل ${hours} ساعة`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `قبل ${days} يوم`;
-  
-  return date.toLocaleDateString("ar-SA", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  if (Number.isNaN(date.getTime())) return "";
+  return formatDateTime(date);
 }
 
 export default function GithubCommitsTab({
@@ -363,8 +355,8 @@ export default function GithubCommitsTab({
                 const authorName = item.commit?.author?.name || item.author?.login || "مطور غير معروف";
                 const avatarUrl = item.author?.avatar_url;
                 const shortSha = item.sha.substring(0, 7);
-                const relativeTime = item.commit?.author?.date
-                  ? formatArabicRelativeTime(item.commit.author.date)
+                const commitDate = item.commit?.author?.date
+                  ? formatCommitDate(item.commit.author.date)
                   : "";
 
                 return (
@@ -409,10 +401,10 @@ export default function GithubCommitsTab({
                             {authorName}
                           </span>
 
-                          {relativeTime && (
-                            <span className="inline-flex items-center gap-1">
+                          {commitDate && (
+                            <span className="inline-flex items-center gap-1 tabular-nums">
                               <Calendar className="h-3.5 w-3.5 text-ink/65" />
-                              {relativeTime}
+                              {commitDate}
                             </span>
                           )}
                         </div>

@@ -6,7 +6,7 @@ import type {
   TaskStage,
   UserRole,
 } from "@prisma/client";
-import { formatLongDate, formatShortDate, ymd } from "./calendar";
+import { formatDateTime, formatLongDate, formatShortDate, ymd } from "./calendar";
 import { APPROVAL_STATUS_LABEL, STATUS_LABEL, stageFor } from "./labels";
 import { openSubtaskCount, ROLE_LABEL } from "./permissions";
 
@@ -152,24 +152,11 @@ export type ProjectView = {
   total: number;
 };
 
-/** Rough Arabic relative time. Computed server-side so it never re-renders wrong. */
-function relativeArabic(then: Date, now: Date): string {
-  const mins = Math.max(0, Math.round((now.getTime() - then.getTime()) / 60000));
-  if (mins < 2) return "الآن";
-  if (mins < 60) return `قبل ${mins} دقيقة`;
+/* The feed used to say "قبل 7 ساعات" here. It now writes the moment out in
+   full — see `formatDateTime`. A rounded phrase collapsed a morning's worth of
+   entries into one indistinguishable label. */
 
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `قبل ${hours} ${hours <= 10 ? "ساعات" : "ساعة"}`;
-
-  const days = Math.round(hours / 24);
-  if (days === 1) return "أمس";
-  if (days < 7) return `قبل ${days} أيام`;
-  if (days < 14) return "قبل أسبوع";
-  if (days < 30) return `قبل ${Math.round(days / 7)} أسابيع`;
-  return formatShortDate(ymd(then));
-}
-
-export function toProjectView(row: ProjectRow, now: Date): ProjectView {
+export function toProjectView(row: ProjectRow): ProjectView {
   const tasks: TaskView[] = row.tasks.map((t) => {
     const subtasks: SubtaskView[] = t.subtasks.map((s) => ({
       id: s.id,
@@ -244,7 +231,7 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
     due: formatShortDate(row.dueDate ? ymd(row.dueDate) : null),
     tasks,
     activity: row.activity.map((a) => ({
-      when: relativeArabic(a.createdAt, now),
+      when: formatDateTime(a.createdAt),
       what: a.message,
       who: a.user?.name ?? null,
     })),

@@ -27,8 +27,7 @@ export default async function ProjectPage({
     notFound();
   }
 
-  const now = new Date();
-  const project = toProjectView(row, now);
+  const project = toProjectView(row);
 
   const allUsers =
     viewer.role === "SUPER_ADMIN"

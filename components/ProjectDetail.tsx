@@ -152,9 +152,13 @@ export default function ProjectDetail({
           <div className="flex flex-col gap-2.5">
             {/* A summary, not the history — that lives on the project page's
                 own tab. The query returns far more than this column can hold. */}
+            {/* Date on its own line: it reads as a full moment now, far too
+                wide for the side-by-side column this used to be. */}
             {project.activity.slice(0, 6).map((a, i) => (
-              <div key={i} className="flex gap-3 text-[14px]">
-                <span className="min-w-[58px] text-ink/70">{a.when}</span>
+              <div key={i} className="flex flex-col gap-0.5 text-[14px]">
+                <span className="text-[13px] tabular-nums text-ink/70">
+                  {a.when}
+                </span>
                 <span className="leading-[1.6]">
                   {a.what}
                   {a.who && (

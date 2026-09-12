@@ -51,7 +51,7 @@ export default async function Home() {
     : [];
 
   const now = new Date();
-  const projects = rows.map((row) => toProjectView(row, now));
+  const projects = rows.map(toProjectView);
   const dailyTasks = dailyRows.map(toDailyTaskView);
 
   return (

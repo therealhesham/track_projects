@@ -79,6 +79,24 @@ export function formatLongDate(day: string | null): string {
   return `${d} ${AR_MONTHS[m - 1]} ${y}`;
 }
 
+/**
+ * "12 سبتمبر 2026 · 2:45 م" — a moment written out in full.
+ *
+ * The activity feed uses this rather than "قبل 7 ساعات": several entries land
+ * in the same hour, and a rounded phrase makes them all read alike while saying
+ * nothing about the order or the actual moment. Formatted on the server and
+ * sent as a finished string, as `ymd` explains — a timestamp re-formatted in the
+ * browser can land in another time zone.
+ */
+export function formatDateTime(date: Date): string {
+  const hours24 = date.getHours();
+  const meridiem = hours24 < 12 ? "ص" : "م";
+  // 0 → 12, 13 → 1. Midnight and noon both read as 12.
+  const hour = hours24 % 12 || 12;
+  const minute = `${date.getMinutes()}`.padStart(2, "0");
+  return `${formatLongDate(ymd(date))} · ${hour}:${minute} ${meridiem}`;
+}
+
 /** "٢٤ أغسطس · الأحد" — the calendar side-panel heading. */
 export function formatDayTitle(day: string): string {
   const [y, m, d] = day.split("-").map(Number);
