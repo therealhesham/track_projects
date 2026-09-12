@@ -221,18 +221,22 @@ export default function TaskTimeline({ project }: { project: ProjectView }) {
             <div className="relative" style={{ width: chartWidth }}>
               {/* Month bands */}
               <div className="relative h-7 border-b border-ink/8 bg-surface">
-                {bands.map((band) => (
-                  <div
-                    key={band.label}
-                    className="absolute top-0 flex h-7 items-center justify-center overflow-hidden border-s border-ink/10 text-[13px] font-bold text-ink/80"
-                    style={{
-                      insetInlineStart: band.offset * dayWidth,
-                      width: band.days * dayWidth,
-                    }}
-                  >
-                    {band.label}
-                  </div>
-                ))}
+                {bands.map((band) => {
+                  const width = band.days * dayWidth;
+                  return (
+                    <div
+                      key={band.label}
+                      className="absolute top-0 flex h-7 items-center justify-center overflow-hidden whitespace-nowrap border-s border-ink/10 text-[13px] font-bold text-ink/80"
+                      style={{ insetInlineStart: band.offset * dayWidth, width }}
+                      title={band.label}
+                    >
+                      {/* A range's first and last months are usually a sliver.
+                          Half a month name is worse than none — the band's rule
+                          still shows where the month turns over. */}
+                      {width >= 72 ? band.label : ""}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Day ruler */}

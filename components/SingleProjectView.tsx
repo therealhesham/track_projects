@@ -291,7 +291,9 @@ function ProjectPage({
         </div>
 
         {/* ── Tabs Header ──────────────────────────────────────────────── */}
-        <div className="mt-8 flex items-center gap-2 border-b border-ink/10">
+        {/* Scrolls rather than wraps: a six-tab row squeezes two-word labels
+            onto three lines on a laptop, which reads as broken. */}
+        <div className="mt-8 flex items-center gap-2 overflow-x-auto border-b border-ink/10">
           <TabButton
             active={activeTab === "tasks"}
             onClick={() => setActiveTab("tasks")}
@@ -663,7 +665,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative inline-flex items-center gap-2 px-4 py-3 text-[14px] font-medium transition-colors ${
+      className={`relative inline-flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-3 text-[14px] font-medium transition-colors ${
         active
           ? "text-accent"
           : "text-ink/70 hover:text-ink"
