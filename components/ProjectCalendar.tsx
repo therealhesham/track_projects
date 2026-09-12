@@ -77,6 +77,25 @@ export const TASK_STATUS_CONFIG: Record<
   },
 };
 
+/** What a bar's colour means. Shared so the calendar and the timeline teach the
+ *  same vocabulary — a colour learned in one view reads the same in the other. */
+export function StatusLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-ink/8 bg-paper px-5 py-2.5 text-[13px]">
+      <span className="font-medium text-ink/70 me-1">حالات المهام:</span>
+      {(Object.keys(TASK_STATUS_CONFIG) as TaskApprovalStatus[]).map((st) => {
+        const cfg = TASK_STATUS_CONFIG[st];
+        return (
+          <span key={st} className="inline-flex items-center gap-1.5 text-ink/85">
+            <span className={`h-2.5 w-2.5 rounded-full ${cfg.dotBg}`} />
+            <span>{cfg.label}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export type TaskSpan = {
   task: TaskView;
   startDay: string;
@@ -193,19 +212,7 @@ export default function ProjectCalendar({
         </button>
       </div>
 
-      {/* Status Color Legend */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-ink/8 bg-paper px-5 py-2.5 text-[13px]">
-        <span className="font-medium text-ink/70 me-1">حالات المهام:</span>
-        {(Object.keys(TASK_STATUS_CONFIG) as TaskApprovalStatus[]).map((st) => {
-          const cfg = TASK_STATUS_CONFIG[st];
-          return (
-            <span key={st} className="inline-flex items-center gap-1.5 text-ink/85">
-              <span className={`h-2.5 w-2.5 rounded-full ${cfg.dotBg}`} />
-              <span>{cfg.label}</span>
-            </span>
-          );
-        })}
-      </div>
+      <StatusLegend />
 
       {/* Calendar Controls */}
       <div className="flex items-center justify-between px-1">

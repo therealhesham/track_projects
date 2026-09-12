@@ -15,6 +15,7 @@ import { canRequestCompletion, type Viewer } from "@/lib/permissions";
 import type { ProjectView, TaskView } from "@/lib/view";
 import { RoleProvider, useRole, type CurrentUser } from "./RoleContext";
 import ProjectCalendar from "./ProjectCalendar";
+import TaskTimeline from "./TaskTimeline";
 import SubtaskList from "./SubtaskList";
 import TeamPanel, { type UserOption } from "./TeamPanel";
 import GithubCommitsTab from "./GithubCommitsTab";
@@ -40,6 +41,7 @@ import {
   Edit3,
   GitCommit,
   History,
+  GanttChartSquare,
 } from "lucide-react";
 
 // ─── status palette ───────────────────────────────────────────────────────────
@@ -92,7 +94,7 @@ function ProjectPage({
   );
 
   const [activeTab, setActiveTab] = useState<
-    "tasks" | "calendar" | "team" | "activity" | "github"
+    "tasks" | "timeline" | "calendar" | "team" | "activity" | "github"
   >("tasks");
   const [addOpen, setAddOpen] = useState(false);
 
@@ -298,10 +300,16 @@ function ProjectPage({
             count={totalCount}
           />
           <TabButton
+            active={activeTab === "timeline"}
+            onClick={() => setActiveTab("timeline")}
+            icon={<GanttChartSquare className="h-4 w-4" />}
+            label="تايم لاين المهام"
+          />
+          <TabButton
             active={activeTab === "calendar"}
             onClick={() => setActiveTab("calendar")}
             icon={<Calendar className="h-4 w-4" />}
-            label="التقويم والجدول الزمني"
+            label="التقويم"
           />
           <TabButton
             active={activeTab === "team"}
@@ -391,6 +399,8 @@ function ProjectPage({
             </aside>
           </div>
         )}
+
+        {activeTab === "timeline" && <TaskTimeline project={project} />}
 
         {activeTab === "calendar" && (
           <ProjectCalendar project={project} />
