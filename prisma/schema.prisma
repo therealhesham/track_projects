@@ -153,10 +153,16 @@ model ProjectMember {
 }
 
 model Task {
-  id        String    @id @default(cuid())
+  id        String @id @default(cuid())
   projectId String
   title     String
-  stage     TaskStage @default(NEW)
+
+  /// No longer the source of truth for the board column — that is derived from
+  /// `approvalStatus` by `stageFor`, so the two can never disagree. The writes
+  /// below it in app/actions.ts are kept only so the stored value stays honest
+  /// for anyone reading the table directly; nothing in the app reads it. Safe
+  /// to drop.
+  stage TaskStage @default(NEW)
 
   /// Manual ordering inside a board column.
   position Int @default(0)
@@ -171,6 +177,16 @@ model Task {
 
   /// Optional note from the assignee when they request completion.
   completionNote String? @db.Text
+
+  /// Why the manager admitted this task, or turned it away. Carries the reason
+  /// whichever way the first decision went — a rejection must give one, an
+  /// admission may.
+  reviewNote String? @db.Text
+
+  /// The same, for the second decision: signing off the completion or sending
+  /// it back. Kept apart from `reviewNote` so admitting a task cannot erase why
+  /// its completion was refused, nor the other way round.
+  completionReviewNote String? @db.Text
 
   /// When the assignee marked this task as complete (requested completion).
   completionRequestedAt DateTime?
@@ -240,6 +256,10 @@ model Subtask {
   /// Optional note from the assignee when they request completion.
   completionNote String? @db.Text
 
+  /// Reasons behind the two decisions, as on `Task` — see the notes there.
+  reviewNote           String? @db.Text
+  completionReviewNote String? @db.Text
+
   completionRequestedAt DateTime?
   managerApprovedAt     DateTime?
 
@@ -299,6 +319,10 @@ model DailyTask {
 
   /// Optional note from the owner when they request completion.
   completionNote String? @db.Text
+
+  /// Reasons behind the two decisions, as on `Task` — see the notes there.
+  reviewNote           String? @db.Text
+  completionReviewNote String? @db.Text
 
   completionRequestedAt DateTime?
   /// When the super admin signed off the completion.

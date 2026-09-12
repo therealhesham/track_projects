@@ -4,11 +4,6 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { signOutAction } from "@/app/actions";
 import {
-  approveTask,
-  rejectTask,
-  requestCompletion,
-  approveCompletion,
-  rejectCompletion,
   deleteTask,
   addTask,
   updateTask,
@@ -23,6 +18,9 @@ import ProjectCalendar from "./ProjectCalendar";
 import SubtaskList from "./SubtaskList";
 import TeamPanel, { type UserOption } from "./TeamPanel";
 import GithubCommitsTab from "./GithubCommitsTab";
+import DecisionDialog from "./DecisionDialog";
+import DecisionNotes from "./DecisionNotes";
+import { TASK_DECISIONS, type Decision } from "./decisions";
 import {
   ChevronRight,
   LogOut,
@@ -767,8 +765,8 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
   projectMembers: import("@/lib/view").MemberView[];
 }) {
   const { currentUser } = useRole();
-  const [showNoteInput, setShowNoteInput] = useState(false);
-  const [note, setNote] = useState("");
+  /** Which decision is being written up, if any — each opens the same dialog. */
+  const [decision, setDecision] = useState<Decision | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -874,9 +872,12 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
             </span>
           )}
 
-          {task.completionNote && isPendingCompletion && (
-            <span className="text-[13px] italic text-ink/60">"{task.completionNote}"</span>
-          )}
+          <DecisionNotes
+            approvalStatus={task.approvalStatus}
+            completionNote={task.completionNote}
+            reviewNote={task.reviewNote}
+            completionReviewNote={task.completionReviewNote}
+          />
         </div>
 
         {/* Steps */}
@@ -891,8 +892,8 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
       <div className="ms-auto flex shrink-0 items-center gap-1.5">
         {isPending && isProjectManager && (
           <>
-            <Pill label="اعتماد" variant="accept" onClick={() => run(() => approveTask(task.id))} />
-            <Pill label="رفض"    variant="reject" onClick={() => run(() => rejectTask(task.id))} />
+            <Pill label="اعتماد" variant="accept" onClick={() => setDecision("admit")} />
+            <Pill label="رفض"    variant="reject" onClick={() => setDecision("turnAway")} />
           </>
         )}
 
@@ -904,32 +905,15 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
             >
               تسجيل إتمام
             </span>
-          ) : showNoteInput ? (
-            <>
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="ملاحظة..."
-                className="w-28 rounded-lg border border-ink/20 bg-white px-2 py-0.5 text-[13px] outline-none focus:border-accent"
-                autoFocus
-              />
-              <Pill label="تأكيد" variant="accept" onClick={() => run(async () => {
-                const r = await requestCompletion(task.id, note);
-                if (r.ok) setShowNoteInput(false);
-                return r;
-              })} />
-              <Pill label="إلغاء" variant="neutral" onClick={() => setShowNoteInput(false)} />
-            </>
           ) : (
-            <Pill label="تسجيل إتمام" variant="accept" onClick={() => setShowNoteInput(true)} />
+            <Pill label="تسجيل إتمام" variant="accept" onClick={() => setDecision("complete")} />
           )
         )}
 
         {isPendingCompletion && (isManager || isSuperAdmin) && (
           <>
-            <Pill label="موافقة" variant="accept" onClick={() => run(() => approveCompletion(task.id))} />
-            <Pill label="رفض"    variant="reject" onClick={() => run(() => rejectCompletion(task.id))} />
+            <Pill label="موافقة" variant="accept" onClick={() => setDecision("signOff")} />
+            <Pill label="رفض"    variant="reject" onClick={() => setDecision("sendBack")} />
           </>
         )}
 
@@ -964,6 +948,14 @@ function TaskCard({ task, who, isLast, isProjectManager, projectMembers }: {
           task={task}
           projectMembers={projectMembers}
           onClose={() => setEditOpen(false)}
+        />
+      )}
+
+      {decision && (
+        <DecisionDialog
+          {...TASK_DECISIONS[decision]}
+          onConfirm={(note) => TASK_DECISIONS[decision].run(task.id, note)}
+          onClose={() => setDecision(null)}
         />
       )}
     </div>

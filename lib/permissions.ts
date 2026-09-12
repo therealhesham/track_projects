@@ -42,17 +42,9 @@ export function canEditProject(
   return viewer.role === "SUPER_ADMIN" || membership === "MANAGER";
 }
 
-/**
- * Moving tasks. Any member of the project may do this — that is the daily work
- * of the board, and restricting it to managers would make the tool useless to
- * the people actually doing the tasks.
- */
-export function canMoveTask(
-  viewer: Viewer,
-  membership: ProjectRole | null,
-): boolean {
-  return viewer.role === "SUPER_ADMIN" || membership !== null;
-}
+/* There is no `canMoveTask`: a task's board column is no longer something a
+   person sets. It is read off the approval status — see `stageFor` — so moving
+   a card means taking the lifecycle step, which the gates below already rule on. */
 
 /** Adding or removing people on a project. */
 export function canManageMembers(

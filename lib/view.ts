@@ -7,7 +7,7 @@ import type {
   UserRole,
 } from "@prisma/client";
 import { formatLongDate, formatShortDate, ymd } from "./calendar";
-import { APPROVAL_STATUS_LABEL, STATUS_LABEL } from "./labels";
+import { APPROVAL_STATUS_LABEL, STATUS_LABEL, stageFor } from "./labels";
 import { openSubtaskCount, ROLE_LABEL } from "./permissions";
 
 /**
@@ -68,6 +68,10 @@ export type SubtaskView = {
   approvalStatus: TaskApprovalStatus;
   approvalStatusLabel: string;
   completionNote: string | null;
+  /** Why the manager admitted this step, or turned it away. */
+  reviewNote: string | null;
+  /** Why they signed off its completion, or sent it back. */
+  completionReviewNote: string | null;
   startedDay: string | null;
   completedDay: string | null;
   /** Optional deadline for this step alone. */
@@ -77,7 +81,12 @@ export type SubtaskView = {
 export type TaskView = {
   id: string;
   title: string;
-  stage: TaskStage;
+  /**
+   * The board column, derived from `approvalStatus` rather than read off the
+   * stored column — see `stageFor`. Null for a turned-away task, which sits in
+   * no column at all.
+   */
+  stage: TaskStage | null;
   done: boolean;
   assignee: string | null;
   assigneeId: string | null;
@@ -85,6 +94,10 @@ export type TaskView = {
   approvalStatus: TaskApprovalStatus;
   approvalStatusLabel: string;
   completionNote: string | null;
+  /** Why the manager admitted this task, or turned it away. */
+  reviewNote: string | null;
+  /** Why they signed off its completion, or sent it back. */
+  completionReviewNote: string | null;
   /** `YYYY-MM-DD`, or null when the stamp is unset. */
   startedDay: string | null;
   completedDay: string | null;
@@ -170,6 +183,8 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
       approvalStatus: s.approvalStatus,
       approvalStatusLabel: APPROVAL_STATUS_LABEL[s.approvalStatus],
       completionNote: s.completionNote ?? null,
+      reviewNote: s.reviewNote ?? null,
+      completionReviewNote: s.completionReviewNote ?? null,
       startedDay: s.startedAt ? ymd(s.startedAt) : null,
       completedDay: s.completedAt ? ymd(s.completedAt) : null,
       dueDate: s.dueDate ? ymd(s.dueDate) : null,
@@ -178,7 +193,7 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
     return {
       id: t.id,
       title: t.title,
-      stage: t.stage,
+      stage: stageFor(t.approvalStatus),
       done: t.approvalStatus === "DONE",
       assignee: t.assignee?.name ?? null,
       assigneeId: t.assignee?.id ?? null,
@@ -186,6 +201,8 @@ export function toProjectView(row: ProjectRow, now: Date): ProjectView {
       approvalStatus: t.approvalStatus,
       approvalStatusLabel: APPROVAL_STATUS_LABEL[t.approvalStatus],
       completionNote: t.completionNote ?? null,
+      reviewNote: t.reviewNote ?? null,
+      completionReviewNote: t.completionReviewNote ?? null,
       startedDay: t.startedAt ? ymd(t.startedAt) : null,
       completedDay: t.completedAt ? ymd(t.completedAt) : null,
       completionRequestedDay: t.completionRequestedAt ? ymd(t.completionRequestedAt) : null,
@@ -268,6 +285,10 @@ export type DailyTaskView = {
   approvalStatus: TaskApprovalStatus;
   approvalStatusLabel: string;
   completionNote: string | null;
+  /** Why the super admin admitted this task, or turned it away. */
+  reviewNote: string | null;
+  /** Why they signed off its completion, or sent it back. */
+  completionReviewNote: string | null;
   done: boolean;
   startedDay: string | null;
   completedDay: string | null;
@@ -286,6 +307,8 @@ export function toDailyTaskView(row: DailyTaskRow): DailyTaskView {
     approvalStatus: row.approvalStatus,
     approvalStatusLabel: APPROVAL_STATUS_LABEL[row.approvalStatus],
     completionNote: row.completionNote,
+    reviewNote: row.reviewNote ?? null,
+    completionReviewNote: row.completionReviewNote ?? null,
     done: row.approvalStatus === "DONE",
     startedDay: row.startedAt ? ymd(row.startedAt) : null,
     completedDay: row.completedAt ? ymd(row.completedAt) : null,

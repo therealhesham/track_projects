@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { advanceTask } from "@/app/actions";
+import { useState } from "react";
 import type { MonthGrid } from "@/lib/calendar";
 import type { FilterKey, ScreenKey } from "@/lib/labels";
 import type { Viewer } from "@/lib/permissions";
@@ -44,15 +43,8 @@ export default function Dashboard({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(today);
 
-  const [pending, startTransition] = useTransition();
-
   const selected =
     projects.find((p) => p.id === selectedId) ?? projects[0] ?? null;
-
-  const runAdvance = (taskId: string) =>
-    startTransition(() => {
-      void advanceTask(taskId);
-    });
 
   // The current user object for the role context — viewer comes from the real session.
   const currentUser: CurrentUser = {
@@ -63,7 +55,7 @@ export default function Dashboard({
 
   return (
     <RoleProvider viewer={currentUser}>
-      <div className={pending ? "cursor-progress" : undefined}>
+      <div>
         <NavBar viewer={viewer} canCreate={canCreate} />
 
         <StatsStrip
@@ -99,7 +91,7 @@ export default function Dashboard({
             )}
 
             {screen === "board" && (
-              <BoardScreen projects={projects} onAdvanceTask={runAdvance} />
+              <BoardScreen projects={projects} />
             )}
 
             {screen === "calendar" && (

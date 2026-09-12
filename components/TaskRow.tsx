@@ -5,16 +5,12 @@ import { Check, X, Trash2 } from "lucide-react";
 import type { MemberView, TaskView } from "@/lib/view";
 import { APPROVAL_STATUS_TAG } from "@/lib/labels";
 import SubtaskList from "./SubtaskList";
-import {
-  approveTask,
-  rejectTask,
-  requestCompletion,
-  approveCompletion,
-  rejectCompletion,
-  deleteTask,
-} from "@/app/actions";
+import { deleteTask } from "@/app/actions";
 import { canRequestCompletion } from "@/lib/permissions";
 import { useRole } from "./RoleContext";
+import DecisionDialog from "./DecisionDialog";
+import DecisionNotes from "./DecisionNotes";
+import { TASK_DECISIONS, type Decision } from "./decisions";
 
 /**
  * One checkable task line with full approval-lifecycle actions.
@@ -45,8 +41,7 @@ export default function TaskRow({
   const { currentUser } = useRole();
   const mobile = size === "mobile";
 
-  const [showNoteInput, setShowNoteInput] = useState(false);
-  const [note, setNote] = useState("");
+  const [decision, setDecision] = useState<Decision | null>(null);
   const [pending, startTransition] = useTransition();
 
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
@@ -69,12 +64,12 @@ export default function TaskRow({
           <ActionBtn
             label="اعتماد"
             variant="accept"
-            onClick={() => run(() => approveTask(task.id))}
+            onClick={() => setDecision("admit")}
           />
           <ActionBtn
             label="رفض"
             variant="reject"
-            onClick={() => run(() => rejectTask(task.id))}
+            onClick={() => setDecision("turnAway")}
           />
         </div>
       );
@@ -91,42 +86,12 @@ export default function TaskRow({
             </div>
           );
         }
-        if (showNoteInput) {
-          return (
-            <div className="ms-auto flex items-center gap-1.5">
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="ملاحظة (اختياري)"
-                className="w-36 rounded border border-ink/20 bg-white px-2 py-0.5 text-[13px] outline-none focus:border-accent"
-                autoFocus
-              />
-              <ActionBtn
-                label="تأكيد"
-                variant="accept"
-                onClick={() =>
-                  run(async () => {
-                    const r = await requestCompletion(task.id, note);
-                    if (r.ok) setShowNoteInput(false);
-                    return r;
-                  })
-                }
-              />
-              <ActionBtn
-                label="إلغاء"
-                variant="neutral"
-                onClick={() => setShowNoteInput(false)}
-              />
-            </div>
-          );
-        }
         return (
           <div className="ms-auto">
             <ActionBtn
               label="تسجيل إتمام"
               variant="accept"
-              onClick={() => setShowNoteInput(true)}
+              onClick={() => setDecision("complete")}
             />
           </div>
         );
@@ -137,24 +102,17 @@ export default function TaskRow({
     if (task.approvalStatus === "PENDING_COMPLETION") {
       if (isManager || isSuperAdmin) {
         return (
-          <div className="ms-auto flex flex-col items-end gap-1">
-            {task.completionNote && (
-              <span className="text-[13px] text-ink/70 italic">
-                ملاحظة: {task.completionNote}
-              </span>
-            )}
-            <div className="flex gap-1.5">
-              <ActionBtn
-                label="موافقة"
-                variant="accept"
-                onClick={() => run(() => approveCompletion(task.id))}
-              />
-              <ActionBtn
-                label="رفض"
-                variant="reject"
-                onClick={() => run(() => rejectCompletion(task.id))}
-              />
-            </div>
+          <div className="ms-auto flex gap-1.5">
+            <ActionBtn
+              label="موافقة"
+              variant="accept"
+              onClick={() => setDecision("signOff")}
+            />
+            <ActionBtn
+              label="رفض"
+              variant="reject"
+              onClick={() => setDecision("sendBack")}
+            />
           </div>
         );
       }
@@ -267,6 +225,14 @@ export default function TaskRow({
         </span>
       )}
 
+      <DecisionNotes
+        approvalStatus={task.approvalStatus}
+        completionNote={task.completionNote}
+        reviewNote={task.reviewNote}
+        completionReviewNote={task.completionReviewNote}
+        size="compact"
+      />
+
       {/* Steps */}
       <SubtaskList
         task={task}
@@ -274,6 +240,14 @@ export default function TaskRow({
         projectMembers={projectMembers}
         size={size}
       />
+
+      {decision && (
+        <DecisionDialog
+          {...TASK_DECISIONS[decision]}
+          onConfirm={(note) => TASK_DECISIONS[decision].run(task.id, note)}
+          onClose={() => setDecision(null)}
+        />
+      )}
     </div>
   );
 }

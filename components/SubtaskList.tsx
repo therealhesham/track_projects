@@ -4,15 +4,7 @@ import { useState, useTransition } from "react";
 import { Check, X, Trash2, Plus, ChevronDown, ChevronLeft } from "lucide-react";
 import type { MemberView, SubtaskView, TaskView } from "@/lib/view";
 import { APPROVAL_STATUS_TAG } from "@/lib/labels";
-import {
-  addSubtask,
-  approveSubtask,
-  rejectSubtask,
-  requestSubtaskCompletion,
-  approveSubtaskCompletion,
-  rejectSubtaskCompletion,
-  deleteSubtask,
-} from "@/app/actions";
+import { addSubtask, deleteSubtask } from "@/app/actions";
 import {
   canAddSubtask,
   canApproveSubtask,
@@ -21,6 +13,9 @@ import {
   canReviewSubtaskCompletion,
 } from "@/lib/permissions";
 import { useRole } from "./RoleContext";
+import DecisionDialog from "./DecisionDialog";
+import DecisionNotes from "./DecisionNotes";
+import { SUBTASK_DECISIONS, type Decision } from "./decisions";
 
 /**
  * The steps under one task, with the same approval lifecycle the task itself
@@ -173,8 +168,7 @@ function SubtaskRow({
   const { currentUser } = useRole();
   const membership = isProjectManager ? "MANAGER" : null;
 
-  const [showNoteInput, setShowNoteInput] = useState(false);
-  const [note, setNote] = useState("");
+  const [decision, setDecision] = useState<Decision | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -256,13 +250,6 @@ function SubtaskRow({
         </span>
       )}
 
-      {subtask.completionNote &&
-        subtask.approvalStatus === "PENDING_COMPLETION" && (
-          <span className="text-[12px] text-ink/60 italic">
-            &quot;{subtask.completionNote}&quot;
-          </span>
-        )}
-
       {/* Actions */}
       <div className="ms-auto flex shrink-0 items-center gap-1.5">
         {subtask.approvalStatus === "PENDING_APPROVAL" &&
@@ -271,12 +258,12 @@ function SubtaskRow({
               <MiniPill
                 label="اعتماد"
                 variant="accept"
-                onClick={() => run(() => approveSubtask(subtask.id))}
+                onClick={() => setDecision("admit")}
               />
               <MiniPill
                 label="رفض"
                 variant="reject"
-                onClick={() => run(() => rejectSubtask(subtask.id))}
+                onClick={() => setDecision("turnAway")}
               />
             </>
           )}
@@ -286,41 +273,13 @@ function SubtaskRow({
             currentUser,
             subtask.assigneeId,
             parentAssigneeId,
-          ) &&
-          (showNoteInput ? (
-            <>
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="ملاحظة..."
-                className="w-24 rounded-md border border-ink/20 bg-white px-2 py-0.5 text-[12px] outline-none focus:border-accent"
-                autoFocus
-              />
-              <MiniPill
-                label="تأكيد"
-                variant="accept"
-                onClick={() =>
-                  run(async () => {
-                    const r = await requestSubtaskCompletion(subtask.id, note);
-                    if (r.ok) setShowNoteInput(false);
-                    return r;
-                  })
-                }
-              />
-              <MiniPill
-                label="إلغاء"
-                variant="neutral"
-                onClick={() => setShowNoteInput(false)}
-              />
-            </>
-          ) : (
+          ) && (
             <MiniPill
               label="تم"
               variant="accept"
-              onClick={() => setShowNoteInput(true)}
+              onClick={() => setDecision("complete")}
             />
-          ))}
+          )}
 
         {subtask.approvalStatus === "PENDING_COMPLETION" &&
           canReviewSubtaskCompletion(currentUser, membership) && (
@@ -328,12 +287,12 @@ function SubtaskRow({
               <MiniPill
                 label="موافقة"
                 variant="accept"
-                onClick={() => run(() => approveSubtaskCompletion(subtask.id))}
+                onClick={() => setDecision("signOff")}
               />
               <MiniPill
                 label="رفض"
                 variant="reject"
-                onClick={() => run(() => rejectSubtaskCompletion(subtask.id))}
+                onClick={() => setDecision("sendBack")}
               />
             </>
           )}
@@ -358,6 +317,25 @@ function SubtaskRow({
 
       {error && (
         <p className="w-full text-[12px] text-red-500">{error}</p>
+      )}
+
+      {/* The written record, on its own row under the step. */}
+      <div className="w-full">
+        <DecisionNotes
+          approvalStatus={subtask.approvalStatus}
+          completionNote={subtask.completionNote}
+          reviewNote={subtask.reviewNote}
+          completionReviewNote={subtask.completionReviewNote}
+          size="compact"
+        />
+      </div>
+
+      {decision && (
+        <DecisionDialog
+          {...SUBTASK_DECISIONS[decision]}
+          onConfirm={(note) => SUBTASK_DECISIONS[decision].run(subtask.id, note)}
+          onClose={() => setDecision(null)}
+        />
       )}
     </div>
   );

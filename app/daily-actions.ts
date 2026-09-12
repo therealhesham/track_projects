@@ -29,6 +29,12 @@ import { requireViewer } from "@/lib/session";
 
 const DENIED = "لا تملك صلاحية للقيام بهذا الإجراء" as const;
 const NOT_FOUND = "المهمة غير موجودة" as const;
+const REASON_REQUIRED = "سبب الرفض مطلوب" as const;
+
+/** As in app/actions.ts: approvals may pass in silence, rejections may not. */
+function decisionReason(note: string | undefined): string | null {
+  return note?.trim() || null;
+}
 
 export type DailyTaskResult = { ok: true } | { ok: false; error: string };
 
@@ -102,7 +108,10 @@ export async function addDailyTask(input: {
 }
 
 /** Super admin admits a pending daily task → ACTIVE, and the clock starts. */
-export async function approveDailyTask(taskId: string): Promise<DailyTaskResult> {
+export async function approveDailyTask(
+  taskId: string,
+  note?: string,
+): Promise<DailyTaskResult> {
   const { viewer, task } = await viewerOnDailyTask(taskId);
   if (!canApproveDailyTask(viewer)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: NOT_FOUND };
@@ -113,6 +122,7 @@ export async function approveDailyTask(taskId: string): Promise<DailyTaskResult>
     where: { id: taskId },
     data: {
       approvalStatus: "ACTIVE" as TaskApprovalStatus,
+      reviewNote: decisionReason(note),
       startedAt: task.startedAt ?? new Date(),
     },
   });
@@ -122,17 +132,24 @@ export async function approveDailyTask(taskId: string): Promise<DailyTaskResult>
 }
 
 /** Super admin turns a pending daily task away → REJECTED. */
-export async function rejectDailyTask(taskId: string): Promise<DailyTaskResult> {
+export async function rejectDailyTask(
+  taskId: string,
+  note?: string,
+): Promise<DailyTaskResult> {
   const { viewer, task } = await viewerOnDailyTask(taskId);
   if (!canApproveDailyTask(viewer)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: NOT_FOUND };
   if (task.approvalStatus !== "PENDING_APPROVAL")
     return { ok: false, error: "المهمة ليست في انتظار الاعتماد" };
 
+  const reason = decisionReason(note);
+  if (!reason) return { ok: false, error: REASON_REQUIRED };
+
   await prisma.dailyTask.update({
     where: { id: taskId },
     data: {
       approvalStatus: "REJECTED" as TaskApprovalStatus,
+      reviewNote: reason,
       startedAt: null,
     },
   });
@@ -228,6 +245,7 @@ async function notifySuperAdminsOfDailyCompletion(input: {
 /** Super admin signs off the completion → DONE. */
 export async function approveDailyCompletion(
   taskId: string,
+  note?: string,
 ): Promise<DailyTaskResult> {
   const { viewer, task } = await viewerOnDailyTask(taskId);
   if (!canReviewDailyCompletion(viewer)) return { ok: false, error: DENIED };
@@ -240,6 +258,7 @@ export async function approveDailyCompletion(
     where: { id: taskId },
     data: {
       approvalStatus: "DONE" as TaskApprovalStatus,
+      completionReviewNote: decisionReason(note),
       managerApprovedAt: now,
       completedAt: now,
       startedAt: task.startedAt ?? now,
@@ -253,6 +272,7 @@ export async function approveDailyCompletion(
 /** Super admin sends the completion back — the task returns to ACTIVE. */
 export async function rejectDailyCompletion(
   taskId: string,
+  note?: string,
 ): Promise<DailyTaskResult> {
   const { viewer, task } = await viewerOnDailyTask(taskId);
   if (!canReviewDailyCompletion(viewer)) return { ok: false, error: DENIED };
@@ -260,11 +280,15 @@ export async function rejectDailyCompletion(
   if (task.approvalStatus !== "PENDING_COMPLETION")
     return { ok: false, error: "المهمة ليست في انتظار موافقة الإتمام" };
 
+  const reason = decisionReason(note);
+  if (!reason) return { ok: false, error: REASON_REQUIRED };
+
   await prisma.dailyTask.update({
     where: { id: taskId },
     data: {
       approvalStatus: "ACTIVE" as TaskApprovalStatus,
       completionNote: null,
+      completionReviewNote: reason,
       completionRequestedAt: null,
     },
   });

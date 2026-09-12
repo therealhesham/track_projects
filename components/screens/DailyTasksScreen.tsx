@@ -1,17 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import {
-  approveDailyCompletion,
-  approveDailyTask,
-  deleteDailyTask,
-  rejectDailyCompletion,
-  rejectDailyTask,
-  requestDailyCompletion,
-} from "@/app/daily-actions";
+import { deleteDailyTask } from "@/app/daily-actions";
 import { formatDayTitle } from "@/lib/calendar";
 import type { DailyTaskView } from "@/lib/view";
 import { useRole } from "../RoleContext";
+import DecisionDialog from "../DecisionDialog";
+import DecisionNotes from "../DecisionNotes";
+import { DAILY_DECISIONS, type Decision } from "../decisions";
 import { TASK_STATUS_CONFIG } from "../ProjectCalendar";
 import AddDailyTaskDialog, {
   type AssignableUser,
@@ -220,19 +216,19 @@ function TaskRow({
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
   const isOwner = task.ownerId === currentUser.id;
 
-  const [noteOpen, setNoteOpen] = useState(false);
-  const [note, setNote] = useState("");
+  const [decision, setDecision] = useState<Decision | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const cfg = TASK_STATUS_CONFIG[task.approvalStatus];
 
+  // Only the delete button still runs straight through; every decision goes via
+  // the dialog, which reports its own errors and closes itself.
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>) => {
     setError(null);
     startTransition(async () => {
       const result = await fn();
       if (!result.ok) setError(result.error ?? "تعذّر تنفيذ الإجراء");
-      else setNoteOpen(false);
     });
   };
 
@@ -271,11 +267,13 @@ function TaskRow({
             )}
             {showOwner && <span>· {task.dayLabel}</span>}
           </div>
-          {task.completionNote && (
-            <p className="mt-1 rounded-md bg-ink/4 px-2.5 py-1.5 text-[13px] text-ink/80">
-              ملاحظة الإتمام: {task.completionNote}
-            </p>
-          )}
+          <DecisionNotes
+            approvalStatus={task.approvalStatus}
+            completionNote={task.completionNote}
+            reviewNote={task.reviewNote}
+            completionReviewNote={task.completionReviewNote}
+            size="compact"
+          />
         </div>
 
         <div className="flex flex-none flex-wrap items-center gap-2">
@@ -283,7 +281,7 @@ function TaskRow({
             <ActionButton
               tone="accent"
               disabled={pending}
-              onClick={() => setNoteOpen((v) => !v)}
+              onClick={() => setDecision("complete")}
             >
               <Check className="h-3.5 w-3.5" />
               تسجيل الإتمام
@@ -295,7 +293,7 @@ function TaskRow({
               <ActionButton
                 tone="accent"
                 disabled={pending}
-                onClick={() => run(() => approveDailyTask(task.id))}
+                onClick={() => setDecision("admit")}
               >
                 <Check className="h-3.5 w-3.5" />
                 اعتماد
@@ -303,7 +301,7 @@ function TaskRow({
               <ActionButton
                 tone="danger"
                 disabled={pending}
-                onClick={() => run(() => rejectDailyTask(task.id))}
+                onClick={() => setDecision("turnAway")}
               >
                 <X className="h-3.5 w-3.5" />
                 رفض
@@ -316,7 +314,7 @@ function TaskRow({
               <ActionButton
                 tone="accent"
                 disabled={pending}
-                onClick={() => run(() => approveDailyCompletion(task.id))}
+                onClick={() => setDecision("signOff")}
               >
                 <Check className="h-3.5 w-3.5" />
                 موافقة
@@ -324,7 +322,7 @@ function TaskRow({
               <ActionButton
                 tone="danger"
                 disabled={pending}
-                onClick={() => run(() => rejectDailyCompletion(task.id))}
+                onClick={() => setDecision("sendBack")}
               >
                 <Undo2 className="h-3.5 w-3.5" />
                 إرجاع
@@ -345,38 +343,12 @@ function TaskRow({
         </div>
       </div>
 
-      {noteOpen && (
-        <div className="flex flex-col gap-2 rounded-md border border-ink/10 bg-surface p-3">
-          <label
-            htmlFor={`daily-note-${task.id}`}
-            className="text-[13px] text-ink/80"
-          >
-            ملاحظة عند تسجيل الإتمام (اختياري)
-          </label>
-          <textarea
-            id={`daily-note-${task.id}`}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={2}
-            className="w-full resize-none rounded-md border border-ink/20 bg-white px-3 py-2 text-[14px] outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
-          />
-          <div className="flex justify-end gap-2">
-            <ActionButton
-              tone="quiet"
-              disabled={pending}
-              onClick={() => setNoteOpen(false)}
-            >
-              إلغاء
-            </ActionButton>
-            <ActionButton
-              tone="accent"
-              disabled={pending}
-              onClick={() => run(() => requestDailyCompletion(task.id, note))}
-            >
-              {pending ? "جارٍ الإرسال…" : "إرسال للاعتماد"}
-            </ActionButton>
-          </div>
-        </div>
+      {decision && (
+        <DecisionDialog
+          {...DAILY_DECISIONS[decision]}
+          onConfirm={(note) => DAILY_DECISIONS[decision].run(task.id, note)}
+          onClose={() => setDecision(null)}
+        />
       )}
 
       {error && (

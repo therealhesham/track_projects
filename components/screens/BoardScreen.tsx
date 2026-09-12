@@ -6,14 +6,14 @@ import { SectionLabel } from "../ProjectDetail";
 import { TASK_STATUS_CONFIG } from "../ProjectCalendar";
 import { Clock, CheckCircle2, User, FolderKanban } from "lucide-react";
 
-export default function BoardScreen({
-  projects,
-}: {
-  projects: ProjectView[];
-  onAdvanceTask?: (taskId: string) => void;
-}) {
+export default function BoardScreen({ projects }: { projects: ProjectView[] }) {
+  // A card's column comes from its approval status (see `stageFor`), so the
+  // board always agrees with the lifecycle. Turned-away tasks have no column
+  // and are left off entirely.
   const cards = projects.flatMap((project) =>
-    project.tasks.map((task) => ({ project, task }))
+    project.tasks
+      .filter((task) => task.stage !== null)
+      .map((task) => ({ project, task })),
   );
 
   return (

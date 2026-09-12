@@ -21,7 +21,7 @@ export const STAGE_LABEL: Record<TaskStage, string> = {
   DONE: "مكتمل",
 };
 
-/** Board column order. A card advances along this list and wraps to the start. */
+/** Board column order, from proposed through signed off. */
 export const STAGE_ORDER = [
   "NEW",
   "IN_PROGRESS",
@@ -29,9 +29,32 @@ export const STAGE_ORDER = [
   "DONE",
 ] as const satisfies readonly TaskStage[];
 
-export function nextStage(stage: TaskStage): TaskStage {
-  const i = STAGE_ORDER.indexOf(stage);
-  return STAGE_ORDER[(i + 1) % STAGE_ORDER.length];
+/**
+ * Which board column a task belongs in, read off its approval status.
+ *
+ * The two enums describe the same journey — proposed, admitted, submitted,
+ * signed off — so the column is not an independent fact to be kept in step but
+ * a reading of the lifecycle. Deriving it means the board cannot claim a task
+ * is finished while its approval says otherwise, which is exactly what a stored
+ * column allowed.
+ *
+ * REJECTED has no column: a turned-away task is not at some stage of the work,
+ * it is out of it. The board drops those cards, as `ProjectView.total` drops
+ * them from the count.
+ */
+export function stageFor(status: TaskApprovalStatus): TaskStage | null {
+  switch (status) {
+    case "PENDING_APPROVAL":
+      return "NEW";
+    case "ACTIVE":
+      return "IN_PROGRESS";
+    case "PENDING_COMPLETION":
+      return "REVIEW";
+    case "DONE":
+      return "DONE";
+    case "REJECTED":
+      return null;
+  }
 }
 
 /** Tailwind classes for the status chip, keyed by the stored enum. */

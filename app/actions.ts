@@ -5,7 +5,6 @@ import { signOut } from "@/auth";
 import type { TaskApprovalStatus, TaskStage, ProjectRole, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
-import { nextStage } from "@/lib/labels";
 import {
   sendCompletionReviewEmail,
   sendMemberInviteEmail,
@@ -23,7 +22,6 @@ import {
   canEditProject,
   canManageMembers,
   canManageUsers,
-  canMoveTask,
   canRequestCompletion,
   canRequestSubtaskCompletion,
   canReviewCompletion,
@@ -51,6 +49,18 @@ export async function signOutAction() {
  * the server; nothing the caller sends is trusted for identity.
  */
 const DENIED = "لا تملك صلاحية للقيام بهذا الإجراء" as const;
+
+const REASON_REQUIRED = "سبب الرفض مطلوب" as const;
+
+/**
+ * The reason attached to an approval decision, trimmed, or null for an empty
+ * one. Approvals may pass in silence; rejections may not — a person sent back
+ * to work with no reason has nothing to act on — so the reject actions check
+ * this for null and refuse, while the approve actions simply store it.
+ */
+function decisionReason(note: string | undefined): string | null {
+  return note?.trim() || null;
+}
 
 /** The signed-in user plus their ProjectRole on `projectId`, or null if none. */
 async function viewerOn(projectId: string) {
@@ -106,7 +116,6 @@ async function viewerOnTask(taskId: string) {
       title: true,
       approvalStatus: true,
       assigneeId: true,
-      stage: true,
       startedAt: true,
       completedAt: true,
     },
@@ -118,56 +127,6 @@ async function viewerOnTask(taskId: string) {
     select: { role: true },
   });
   return { viewer, task, membership: membership?.role ?? null };
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Keep a task's timestamps consistent with the column it sits in:
- * back to NEW clears both stamps, any working column starts the clock if it was
- * not already running, and only DONE carries a completion stamp.
- */
-function stampsFor(
-  stage: TaskStage,
-  current: { startedAt: Date | null; completedAt: Date | null },
-) {
-  if (stage === "NEW") return { startedAt: null, completedAt: null };
-  return {
-    startedAt: current.startedAt ?? new Date(),
-    completedAt: stage === "DONE" ? (current.completedAt ?? new Date()) : null,
-  };
-}
-
-async function moveTask(taskId: string, stage: TaskStage) {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { id: true, startedAt: true, completedAt: true },
-  });
-  if (!task) return;
-
-  await prisma.task.update({
-    where: { id: taskId },
-    data: { stage, ...stampsFor(stage, task) },
-  });
-  revalidatePath("/");
-}
-
-// ── Board actions (existing) ─────────────────────────────────────────────────
-
-/** Checkbox toggle in the detail panel: done ↔ in-progress (legacy). */
-export async function toggleTask(taskId: string) {
-  const { viewer, task, membership } = await viewerOnTask(taskId);
-  if (!task) return;
-  if (!canMoveTask(viewer, membership)) return;
-  await moveTask(taskId, task.stage === "DONE" ? "IN_PROGRESS" : "DONE");
-}
-
-/** Board card click: advance one column, wrapping past the last back to NEW. */
-export async function advanceTask(taskId: string) {
-  const { viewer, task, membership } = await viewerOnTask(taskId);
-  if (!task) return;
-  if (!canMoveTask(viewer, membership)) return;
-  await moveTask(taskId, nextStage(task.stage));
 }
 
 // ── Project creation (existing) ──────────────────────────────────────────────
@@ -431,23 +390,28 @@ export async function updateTask(input: {
 /**
  * The project's manager approves a pending task → ACTIVE.
  */
-export async function approveTask(taskId: string): Promise<TaskActionResult> {
+export async function approveTask(
+  taskId: string,
+  note?: string,
+): Promise<TaskActionResult> {
   const { viewer, task, membership } = await viewerOnTask(taskId);
   if (!canApproveTask(membership)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
   if (task.approvalStatus !== "PENDING_APPROVAL")
     return { ok: false, error: "المهمة ليست في انتظار الاعتماد" };
 
+  const reason = decisionReason(note);
+
   await prisma.task.update({
     where: { id: taskId },
-    data: { approvalStatus: "ACTIVE" as TaskApprovalStatus },
+    data: { approvalStatus: "ACTIVE" as TaskApprovalStatus, reviewNote: reason },
   });
 
   await prisma.activityLog.create({
     data: {
       projectId: task.projectId,
       userId: viewer.id,
-      message: `تم اعتماد المهمة: "${task.title}"`,
+      message: `تم اعتماد المهمة: "${task.title}"${reason ? ` — ${reason}` : ""}`,
     },
   });
 
@@ -459,23 +423,32 @@ export async function approveTask(taskId: string): Promise<TaskActionResult> {
 /**
  * The project's manager rejects a pending task → REJECTED.
  */
-export async function rejectTask(taskId: string): Promise<TaskActionResult> {
+export async function rejectTask(
+  taskId: string,
+  note?: string,
+): Promise<TaskActionResult> {
   const { viewer, task, membership } = await viewerOnTask(taskId);
   if (!canApproveTask(membership)) return { ok: false, error: DENIED };
   if (!task) return { ok: false, error: "المهمة غير موجودة" };
   if (task.approvalStatus !== "PENDING_APPROVAL")
     return { ok: false, error: "المهمة ليست في انتظار الاعتماد" };
 
+  const reason = decisionReason(note);
+  if (!reason) return { ok: false, error: REASON_REQUIRED };
+
   await prisma.task.update({
     where: { id: taskId },
-    data: { approvalStatus: "REJECTED" as TaskApprovalStatus },
+    data: {
+      approvalStatus: "REJECTED" as TaskApprovalStatus,
+      reviewNote: reason,
+    },
   });
 
   await prisma.activityLog.create({
     data: {
       projectId: task.projectId,
       userId: viewer.id,
-      message: `تم رفض المهمة: "${task.title}"`,
+      message: `تم رفض المهمة: "${task.title}" — ${reason}`,
     },
   });
 
@@ -615,7 +588,10 @@ async function notifyManagersOfCompletionRequest(input: {
 /**
  * Manager approves completion → DONE.
  */
-export async function approveCompletion(taskId: string): Promise<TaskActionResult> {
+export async function approveCompletion(
+  taskId: string,
+  note?: string,
+): Promise<TaskActionResult> {
   const { viewer, task, membership } = await viewerOnTask(taskId);
   if (!canReviewCompletion(viewer, membership))
     return { ok: false, error: DENIED };
@@ -637,12 +613,14 @@ export async function approveCompletion(taskId: string): Promise<TaskActionResul
       error: `لا يمكن اعتماد إتمام المهمة قبل إنهاء مهامها الفرعية (${open} متبقية)`,
     };
 
+  const reason = decisionReason(note);
   const now = new Date();
   await prisma.task.update({
     where: { id: taskId },
     data: {
       approvalStatus: "DONE" as TaskApprovalStatus,
       stage: "DONE",
+      completionReviewNote: reason,
       managerApprovedAt: now,
       completedAt: now,
       startedAt: task.startedAt ?? now,
@@ -653,7 +631,7 @@ export async function approveCompletion(taskId: string): Promise<TaskActionResul
     data: {
       projectId: task.projectId,
       userId: viewer.id,
-      message: `تمت الموافقة على إتمام المهمة: "${task.title}"`,
+      message: `تمت الموافقة على إتمام المهمة: "${task.title}"${reason ? ` — ${reason}` : ""}`,
     },
   });
 
@@ -665,7 +643,10 @@ export async function approveCompletion(taskId: string): Promise<TaskActionResul
 /**
  * Manager rejects completion — task returns to ACTIVE.
  */
-export async function rejectCompletion(taskId: string): Promise<TaskActionResult> {
+export async function rejectCompletion(
+  taskId: string,
+  note?: string,
+): Promise<TaskActionResult> {
   const { viewer, task, membership } = await viewerOnTask(taskId);
   if (!canReviewCompletion(viewer, membership))
     return { ok: false, error: DENIED };
@@ -673,12 +654,18 @@ export async function rejectCompletion(taskId: string): Promise<TaskActionResult
   if (task.approvalStatus !== "PENDING_COMPLETION")
     return { ok: false, error: "المهمة ليست في انتظار موافقة الإتمام" };
 
+  const reason = decisionReason(note);
+  if (!reason) return { ok: false, error: REASON_REQUIRED };
+
   await prisma.task.update({
     where: { id: taskId },
     data: {
       approvalStatus: "ACTIVE" as TaskApprovalStatus,
       stage: "IN_PROGRESS",
+      // The assignee's own note goes with the request it belonged to; the
+      // reason it was turned down stays, so they can see what to fix.
       completionNote: null,
+      completionReviewNote: reason,
       completionRequestedAt: null,
     },
   });
@@ -687,7 +674,7 @@ export async function rejectCompletion(taskId: string): Promise<TaskActionResult
     data: {
       projectId: task.projectId,
       userId: viewer.id,
-      message: `تم رفض إتمام المهمة، وأُعيدت للعمل: "${task.title}"`,
+      message: `تم رفض إتمام المهمة، وأُعيدت للعمل: "${task.title}" — ${reason}`,
     },
   });
 
@@ -830,17 +817,23 @@ export async function addSubtask(input: {
 }
 
 /** The project's manager admits a proposed step → ACTIVE. */
-export async function approveSubtask(subtaskId: string): Promise<TaskActionResult> {
+export async function approveSubtask(
+  subtaskId: string,
+  note?: string,
+): Promise<TaskActionResult> {
   const { viewer, subtask, membership } = await viewerOnSubtask(subtaskId);
   if (!canApproveSubtask(membership)) return { ok: false, error: DENIED };
   if (!subtask) return { ok: false, error: "المهمة الفرعية غير موجودة" };
   if (subtask.approvalStatus !== "PENDING_APPROVAL")
     return { ok: false, error: "المهمة الفرعية ليست في انتظار الاعتماد" };
 
+  const reason = decisionReason(note);
+
   await prisma.subtask.update({
     where: { id: subtaskId },
     data: {
       approvalStatus: "ACTIVE" as TaskApprovalStatus,
+      reviewNote: reason,
       startedAt: subtask.startedAt ?? new Date(),
     },
   });
@@ -849,7 +842,7 @@ export async function approveSubtask(subtaskId: string): Promise<TaskActionResul
     data: {
       projectId: subtask.task.projectId,
       userId: viewer.id,
-      message: `تم اعتماد المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"`,
+      message: `تم اعتماد المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"${reason ? ` — ${reason}` : ""}`,
     },
   });
 
@@ -859,17 +852,24 @@ export async function approveSubtask(subtaskId: string): Promise<TaskActionResul
 }
 
 /** The project's manager turns a proposed step away → REJECTED. */
-export async function rejectSubtask(subtaskId: string): Promise<TaskActionResult> {
+export async function rejectSubtask(
+  subtaskId: string,
+  note?: string,
+): Promise<TaskActionResult> {
   const { viewer, subtask, membership } = await viewerOnSubtask(subtaskId);
   if (!canApproveSubtask(membership)) return { ok: false, error: DENIED };
   if (!subtask) return { ok: false, error: "المهمة الفرعية غير موجودة" };
   if (subtask.approvalStatus !== "PENDING_APPROVAL")
     return { ok: false, error: "المهمة الفرعية ليست في انتظار الاعتماد" };
 
+  const reason = decisionReason(note);
+  if (!reason) return { ok: false, error: REASON_REQUIRED };
+
   await prisma.subtask.update({
     where: { id: subtaskId },
     data: {
       approvalStatus: "REJECTED" as TaskApprovalStatus,
+      reviewNote: reason,
       startedAt: null,
     },
   });
@@ -878,7 +878,7 @@ export async function rejectSubtask(subtaskId: string): Promise<TaskActionResult
     data: {
       projectId: subtask.task.projectId,
       userId: viewer.id,
-      message: `تم رفض المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"`,
+      message: `تم رفض المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}" — ${reason}`,
     },
   });
 
@@ -939,6 +939,7 @@ export async function requestSubtaskCompletion(
 /** The manager signs off a step → DONE. */
 export async function approveSubtaskCompletion(
   subtaskId: string,
+  note?: string,
 ): Promise<TaskActionResult> {
   const { viewer, subtask, membership } = await viewerOnSubtask(subtaskId);
   if (!canReviewSubtaskCompletion(viewer, membership))
@@ -947,11 +948,13 @@ export async function approveSubtaskCompletion(
   if (subtask.approvalStatus !== "PENDING_COMPLETION")
     return { ok: false, error: "المهمة الفرعية ليست في انتظار موافقة الإتمام" };
 
+  const reason = decisionReason(note);
   const now = new Date();
   await prisma.subtask.update({
     where: { id: subtaskId },
     data: {
       approvalStatus: "DONE" as TaskApprovalStatus,
+      completionReviewNote: reason,
       managerApprovedAt: now,
       completedAt: now,
       startedAt: subtask.startedAt ?? now,
@@ -962,7 +965,7 @@ export async function approveSubtaskCompletion(
     data: {
       projectId: subtask.task.projectId,
       userId: viewer.id,
-      message: `تمت الموافقة على إتمام المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"`,
+      message: `تمت الموافقة على إتمام المهمة الفرعية: "${stepLabel(subtask.task.title, subtask.title)}"${reason ? ` — ${reason}` : ""}`,
     },
   });
 
@@ -974,6 +977,7 @@ export async function approveSubtaskCompletion(
 /** The manager sends a step back → ACTIVE. */
 export async function rejectSubtaskCompletion(
   subtaskId: string,
+  note?: string,
 ): Promise<TaskActionResult> {
   const { viewer, subtask, membership } = await viewerOnSubtask(subtaskId);
   if (!canReviewSubtaskCompletion(viewer, membership))
@@ -982,11 +986,15 @@ export async function rejectSubtaskCompletion(
   if (subtask.approvalStatus !== "PENDING_COMPLETION")
     return { ok: false, error: "المهمة الفرعية ليست في انتظار موافقة الإتمام" };
 
+  const reason = decisionReason(note);
+  if (!reason) return { ok: false, error: REASON_REQUIRED };
+
   await prisma.subtask.update({
     where: { id: subtaskId },
     data: {
       approvalStatus: "ACTIVE" as TaskApprovalStatus,
       completionNote: null,
+      completionReviewNote: reason,
       completionRequestedAt: null,
     },
   });
@@ -995,7 +1003,7 @@ export async function rejectSubtaskCompletion(
     data: {
       projectId: subtask.task.projectId,
       userId: viewer.id,
-      message: `تم رفض إتمام المهمة الفرعية، وأُعيدت للعمل: "${stepLabel(subtask.task.title, subtask.title)}"`,
+      message: `تم رفض إتمام المهمة الفرعية، وأُعيدت للعمل: "${stepLabel(subtask.task.title, subtask.title)}" — ${reason}`,
     },
   });
 
